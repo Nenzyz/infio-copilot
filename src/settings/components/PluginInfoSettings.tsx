@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import { ApiKeyModal } from '../../components/modals/ApiKeyModal';
 import { ProUpgradeModal } from '../../components/modals/ProUpgradeModal';
-import { fetchUserPlan, upgradeToProVersion } from '../../hooks/use-infio';
+import { checkGeneral, fetchUserPlan, upgradeToProVersion } from '../../hooks/use-infio';
 import type { InfioSettings } from '../../types/settings';
 import { getInfioLogoSvg } from '../../utils/icon';
 
@@ -46,21 +46,36 @@ export default function PluginInfoSettings({
 		setIsUpgrading(true);
 
 		try {
-			// 检查是否为Pro用户
+			// 检查是否为会员(Pro|General)
 			const userPlan = await fetchUserPlan(settings.infioProvider.apiKey);
 			console.log('userPlan', userPlan);
 			const isProUser = userPlan.plan?.toLowerCase().startsWith('pro') || false;
-			if (!isProUser) {
+			const isGeneralUser = userPlan.plan?.toLowerCase().startsWith('general') || false;
+			let dl_zip = userPlan.dl_zip || '';
+			if (!isProUser && !isGeneralUser) {
 				if (plugin?.app) {
 					new ProUpgradeModal(plugin.app).open();
 				} else {
-					new Notice('您的账户不是Pro用户，无法升级到Pro版本, 请先升级到Pro');
+					new Notice('您的账户不是会员用户, 请先购买会员');
 				}
 				return;
 			}
+			if (isGeneralUser) {
+				const result = await checkGeneral(settings.infioProvider.apiKey);
+				if (!result.success) {
+					if (plugin?.app) {
+						new ProUpgradeModal(plugin.app).open();
+					} else {
+						new Notice('您的账户不是会员用户, 请先购买会员');
+					}
+					return;
+				}
+				console.log('result', result);
+				dl_zip = result.dl_zip;
+			}
 
 			// 执行升级
-			const result = await upgradeToProVersion(plugin, userPlan.dl_zip || '');
+			const result = await upgradeToProVersion(plugin, dl_zip);
 
 			if (result.success) {
 				// 升级成功的提示已经在upgradeToProVersion中处理了

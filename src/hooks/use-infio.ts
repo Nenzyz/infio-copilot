@@ -1,23 +1,28 @@
 /* eslint-disable no-console, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 import JSZip from "jszip";
-import { App, Notice, Plugin, requestUrl } from "obsidian";
+import { machineId } from 'node-machine-id';
+import { Notice, Platform, Plugin, requestUrl } from "obsidian";
 
 import { INFIO_BASE_URL } from "../constants";
 
-// 扩展App类型以包含plugins属性
-type AppWithPlugins = App & {
-	plugins: {
-		reloadPlugin: (id: string) => void;
-	};
-};
-
-// 类型保护函数
-function hasPluginsProperty(app: App): app is AppWithPlugins {
-	return 'plugins' in app && 
-		app.plugins !== undefined && 
-		typeof app.plugins === 'object' && 
-		'reloadPlugin' in app.plugins && 
-		typeof app.plugins.reloadPlugin === 'function';
+function getOperatingSystem(): string {
+	if (Platform.isWin) {
+		return 'windows';
+	}
+	if (Platform.isMacOS) {
+		return 'macos';
+	}
+	if (Platform.isLinux) {
+		return 'linux';
+	}
+	if (Platform.isAndroidApp) {
+		return 'android';
+	}
+	if (Platform.isIosApp) {
+		return 'ios';
+	}
+	// 如果所有已知的平台都不是，则返回未知
+	return 'unknown';
 }
 
 // API响应类型定义
@@ -45,23 +50,89 @@ export const fetchUserPlan = async (apiKey: string): Promise<UserPlanResponse> =
 	return response.json;
 }
 
+// API响应类型定义
+export type CheckGeneralResponse = {
+	success: boolean;
+	message: string;
+	dl_zip?: string;
+};
+
+export type CheckGeneralParams = {
+	device_id: string;
+	device_name: string;
+};
+
+/**
+ * 检查设备一般状态
+ * @param apiKey API密钥
+ * @param deviceId 设备ID
+ * @param deviceName 设备名称
+ * @returns Promise<CheckGeneralResponse>
+ */
+export const checkGeneral = async (
+	apiKey: string
+): Promise<CheckGeneralResponse> => {
+	try {
+		if (!apiKey) {
+			throw new Error('API密钥不能为空');
+		}
+		const deviceId = await machineId();
+		const deviceName = getOperatingSystem();
+		if (!deviceId || !deviceName) {
+			throw new Error('设备ID和设备名称不能为空');
+		}
+
+		const response = await requestUrl({
+			url: `${INFIO_BASE_URL}/subscription/check_general`,
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${apiKey}`,
+			},
+			body: JSON.stringify({
+				device_id: deviceId,
+				device_name: deviceName,
+			}),
+		});
+
+		if (response.json.success) {
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+			return response.json;
+		} else {
+			console.error('检查 gerenal 会员失败:', response.json.message);
+			return {
+				success: false,
+				message: response.json.message || '检查设备一般状态失败',
+			};
+		}
+	} catch (error) {
+		console.error('检查 gerenal 会员失败:', error);
+		
+		// 返回错误响应格式
+		return {
+			success: false,
+			message: error instanceof Error ? error.message : '检查设备状态时出现未知错误'
+		};
+	}
+};
+
 /**
  * 检查用户是否为Pro用户
  */
-export const checkIsProUser = async (apiKey: string): Promise<boolean> => {
-	try {
-		if (!apiKey) {
-			return false;
-		}
+// export const checkIsProUser = async (apiKey: string): Promise<boolean> => {
+// 	try {
+// 		if (!apiKey) {
+// 			return false;
+// 		}
 		
-		const userPlan = await fetchUserPlan(apiKey);
-		return userPlan.plan?.toLowerCase().startsWith('pro') || false;
-	} catch (error) {
-		// eslint-disable-next-line no-console
-		console.error('检查Pro用户状态失败:', error);
-		return false;
-	}
-}
+// 		const userPlan = await fetchUserPlan(apiKey);
+// 		return userPlan.plan?.toLowerCase().startsWith('pro') || false;
+// 	} catch (error) {
+// 		// eslint-disable-next-line no-console
+// 		console.error('检查Pro用户状态失败:', error);
+// 		return false;
+// 	}
+// }
 
 /**
  * 清理临时目录
@@ -80,7 +151,6 @@ const cleanupTempDirectory = async (adapter: Plugin['app']['vault']['adapter'], 
 		// 不抛出错误，因为这不是关键操作
 	}
 };
-
 
 
 /**
@@ -110,8 +180,6 @@ const downloadAndExtractToTemp = async (
 		console.log("响应格式无效，缺少arrayBuffer");
 		throw new Error("下载的文件格式无效");
 	}
-
-
 
 	console.log("正在解压文件到临时目录...");
 	console.log(`开始解压文件到临时目录: ${tempDir}`);
@@ -264,16 +332,27 @@ export const upgradeToProVersion = async (
 
 		await cleanupTempDirectory(adapter, tempDir);
 
-		setTimeout(() => {
+		setTimeout(async () => {
 			console.log(`重载插件: ${plugin.manifest.id}`);
-			if (hasPluginsProperty(plugin.app)) {
-				plugin.app.plugins.reloadPlugin(plugin.manifest.id);
+			try {
+				// 禁用插件
+				await plugin.app.plugins.disablePlugin(plugin.manifest.id);
+				console.log(`插件已禁用: ${plugin.manifest.id}`);
+				
+				// 启用插件
+				await plugin.app.plugins.enablePlugin(plugin.manifest.id);
+				console.log(`插件已重新启用: ${plugin.manifest.id}`);
+				
+				new Notice("插件重载完成");
+			} catch (error) {
+				console.error("插件重载失败:", error);
+				new Notice("插件重载失败，请手动重启插件");
 			}
 		}, 1000);
 
 		return {
 			success: true,
-			message: "加载完成，成功升级为Pro"
+			message: "加载完成"
 		};
 
 	} catch (error) {

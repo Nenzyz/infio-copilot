@@ -1,4 +1,7 @@
 releases:
+  - version: "0.8.3"
+    features:
+      - "fix this update pro version error"
   - version: "0.8.1"
     fixes:
       - "fix infio provider api key error"
