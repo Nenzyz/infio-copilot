@@ -288,17 +288,28 @@
       var(--blockquote-border-color);
   }
 
-  code {
-    font-size: var(--font-ui-small);
-    border-radius: var(--code-radius);
-    padding: 0.1em 0.25em;
-    color: var(--code-normal);
-    font-size: var(--code-size);
-    background-color: var(--code-background);
-    vertical-align: baseline;
-    word-break: break-all;
-    overflow-wrap: anywhere;
-    white-space: pre-wrap;
+  .infio-markdown-inline-code {
+    font-size: var(--code-size) !important;
+    border-radius: var(--code-radius) !important;
+    padding: 0.1em 0.25em !important;
+    color: var(--code-normal) !important;
+    background-color: var(--code-background) !important;
+    vertical-align: baseline !important;
+    word-break: break-all !important;
+    overflow-wrap: anywhere !important;
+    white-space: pre-wrap !important;
+    font-family: var(--font-monospace) !important;
+    /* 确保不会被覆盖或重叠 */
+    position: static !important;
+    display: inline !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    /* 防止负边距影响 */
+    transform: none !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
   }
 
   table {
@@ -488,18 +499,22 @@
 }
 
 /* Inline code styling within tables */
-.infio-markdown-table-cell code {
-  background: var(--background-modifier-border);
-  padding: 0.125rem 0.25rem;
-  border-radius: var(--radius-xs);
-  font-size: 0.875em;
-  font-family: var(--font-monospace);
-  color: var(--text-normal);
-  word-break: break-word;
+.infio-markdown-table-cell .infio-markdown-inline-code {
+  background: var(--background-modifier-border) !important;
+  padding: 0.125rem 0.25rem !important;
+  border-radius: var(--radius-xs) !important;
+  font-size: 0.875em !important;
+  font-family: var(--font-monospace) !important;
+  color: var(--text-normal) !important;
+  word-break: break-word !important;
+  position: relative !important;
+  z-index: 2 !important;
+  display: inline !important;
+  margin: 0 !important;
 }
 
-.theme-dark .infio-markdown-table-cell code {
-  background: var(--background-modifier-border-hover);
+.theme-dark .infio-markdown-table-cell .infio-markdown-inline-code {
+  background: var(--background-modifier-border-hover) !important;
 }
 
 /* Table content text wrapping */
@@ -985,8 +1000,45 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   word-wrap: break-word;
 }
 
-.infio-chat-code-block code {
+.infio-chat-code-block code:not(.infio-markdown-inline-code) {
   padding: 0;
+}
+
+/* 删除冲突的样式定义 */
+
+/* RawMarkdownBlock 代码块容器样式 */
+.infio-raw-markdown-code-block {
+  position: relative !important;
+  z-index: 100 !important;  /* 提高z-index优先级 */
+  margin: 0 !important;
+  padding: 0 !important;
+  /* 确保代码块不会被其他元素遮挡 */
+  clear: both;
+  overflow: visible;
+  /* 添加背景色以确保可见性 */
+  background: transparent;
+  /* 确保不被截断 */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 确保代码块内容正确显示 */
+.infio-raw-markdown-code-block pre {
+  position: relative !important;
+  z-index: 101 !important;
+  margin: 0 !important;
+	padding: 0 !important;
+  /* 确保完整显示 */
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.infio-raw-markdown-code-block code {
+  position: relative !important;
+  z-index: 102 !important;
+  /* 确保代码内容完整显示 */
+  display: block !important;
+  width: 100% !important;
 }
 
 .infio-reasoning-content-wrapper {
@@ -1248,7 +1300,7 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   color: var(--text-muted);
 }
 
-.infio-reasoning-markdown code {
+.infio-reasoning-markdown code:not(.infio-markdown-inline-code) {
   background-color: var(--background-modifier-border);
   padding: var(--size-2-1) var(--size-4-1);
   border-radius: var(--radius-s);
@@ -1266,7 +1318,7 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   color: var(--text-muted);
 }
 
-.infio-reasoning-markdown pre code {
+.infio-reasoning-markdown pre code:not(.infio-markdown-inline-code) {
   background-color: transparent;
   padding: 0;
   font-style: italic;
@@ -3595,6 +3647,8 @@ button.infio-chat-input-model-select {
 
 .infio-markdown-container-with-actions {
 	position: relative;
+	/* 确保不会影响内部代码块的显示 */
+	overflow: visible;
 	&:hover {
 		background-color: var(--background-modifier-hover);
 	}
@@ -3602,7 +3656,7 @@ button.infio-chat-input-model-select {
 
 .infio-markdown-actions {
 	position: absolute;
-	bottom: 8px;
+	top: 8px;
 	right: 8px;
 	display: flex;
 	gap: 4px;
@@ -3610,8 +3664,11 @@ button.infio-chat-input-model-select {
 	visibility: hidden;
 	transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
 	padding: 0px;
-	z-index: 10;
-	button {
+	z-index: 50;  /* 降低z-index，确保不会遮挡代码块 */
+	/* 确保不会遮挡代码块 */
+	pointer-events: none;
+}
+.infio-markdown-actions button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3623,6 +3680,8 @@ button.infio-chat-input-model-select {
     box-shadow: none;
     color: var(--text-faint);
     cursor: pointer;
+    /* 恢复按钮的点击事件 */
+    pointer-events: auto;
 
     &:hover {
       background-color: var(--background-modifier-hover);
