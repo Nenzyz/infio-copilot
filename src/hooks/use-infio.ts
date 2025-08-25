@@ -328,7 +328,7 @@ export const upgradeToProVersion = async (
 
 		await copyFilesFromTemp(adapter, tempDir, pluginDir);
 
-		new Notice("加载完成，成功升级为Pro");
+		new Notice("加载完成，成功升级");
 
 		await cleanupTempDirectory(adapter, tempDir);
 
@@ -336,10 +336,12 @@ export const upgradeToProVersion = async (
 			console.log(`重载插件: ${plugin.manifest.id}`);
 			try {
 				// 禁用插件
+				// @ts-ignore
 				await plugin.app.plugins.disablePlugin(plugin.manifest.id);
 				console.log(`插件已禁用: ${plugin.manifest.id}`);
 				
 				// 启用插件
+				// @ts-ignore
 				await plugin.app.plugins.enablePlugin(plugin.manifest.id);
 				console.log(`插件已重新启用: ${plugin.manifest.id}`);
 				
