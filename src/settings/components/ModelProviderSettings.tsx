@@ -12,6 +12,7 @@ import { getProviderApiUrl } from '../../utils/provider-urls';
 
 import { ApiKeyComponent, CustomUrlComponent } from './FormComponents';
 import { ComboBoxComponent } from './ProviderModelsPicker';
+import { fetchUserPlan } from '../../hooks/use-infio';
 
 type CustomProviderSettingsProps = {
 	plugin: InfioPlugin;
@@ -198,6 +199,22 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 			// 动态导入LLMManager以避免循环依赖
 			const { default: LLMManager } = await import('../../core/llm/manager');
 			const { GetDefaultModelId } = await import('../../utils/api');
+
+			// 对比 infio 使用独特的测试逻辑
+			if (provider === ApiProvider.Infio) {
+				const apiKey = settings?.infioProvider?.apiKey?.trim();
+				if (!apiKey) {
+					throw new Error('Infio API key is missing');
+				}
+
+				const userPlan = await fetchUserPlan(apiKey);
+				const plan = String(userPlan?.plan || '').toLowerCase();
+				if (plan === 'general') {
+					console.debug('✅ Infio plan is general, skipping further connection tests.');
+					return; // 直接返回成功
+				}
+			}
+
 
 			// 对于Ollama和OpenAICompatible，不支持测试API连接
 			if (provider === ApiProvider.Ollama || provider === ApiProvider.OpenAICompatible) {

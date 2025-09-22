@@ -1,4 +1,4 @@
-import { Notice, Plugin } from 'obsidian';
+import { Notice, Platform, Plugin } from 'obsidian';
 import * as React from 'react';
 
 import { ApiKeyModal } from '../../components/modals/ApiKeyModal';
@@ -75,6 +75,10 @@ export default function PluginInfoSettings({
 			}
 
 			// 执行升级
+			// check is mobile platform
+			if (Platform.isMobile) {
+				dl_zip = dl_zip.replace('.zip', '.mobile.zip');
+			}
 			const result = await upgradeToProVersion(plugin, dl_zip);
 
 			if (result.success) {
