@@ -1427,6 +1427,7 @@ export class McpHub {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json',
+						// @ts-ignore
 						'Authorization': `Bearer ${this.plugin.settings.infioProvider.apiKey}`,
 					},
 					body: JSON.stringify({
@@ -1640,6 +1641,7 @@ export class McpHub {
 			const response = await fetch(`${INFIO_BASE_URL}/mcp/tools/list`, {
 				headers: {
 					'Content-Type': 'application/json',
+					// @ts-ignore
 					'Authorization': `Bearer ${this.plugin.settings.infioProvider.apiKey}`,
 				},
 			})

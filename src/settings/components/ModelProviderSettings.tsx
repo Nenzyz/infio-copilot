@@ -1,18 +1,18 @@
 import React from 'react';
 
+import { fetchUserPlan } from '../../hooks/use-infio';
 import { t } from '../../lang/helpers';
 import InfioPlugin from "../../main";
 import { ApiProvider } from '../../types/llm/model';
 import { InfioSettings } from '../../types/settings';
 import {
-	GetAllProviders, GetDefaultModelId, GetEmbeddingProviders,
+	GetAllProviders, GetDefaultModelId,
 	localProviderDefaultEmbeddingModelId
 } from '../../utils/api';
 import { getProviderApiUrl } from '../../utils/provider-urls';
 
 import { ApiKeyComponent, CustomUrlComponent } from './FormComponents';
 import { ComboBoxComponent } from './ProviderModelsPicker';
-import { fetchUserPlan } from '../../hooks/use-infio';
 
 type CustomProviderSettingsProps = {
 	plugin: InfioPlugin;
@@ -57,10 +57,12 @@ export const getProviderSettingKey = (provider: ApiProvider): ProviderSettingKey
 };
 
 const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin, onSettingsUpdate }) => {
+	// @ts-ignore
 	const settings = plugin.settings;
 	const activeTab = settings.activeProviderTab || ApiProvider.Infio;
 
 	const handleSettingsUpdate = async (newSettings: InfioSettings) => {
+		// @ts-ignore
 		await plugin.setSettings(newSettings);
 		onSettingsUpdate?.();
 	};

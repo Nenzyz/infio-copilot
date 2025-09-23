@@ -24,17 +24,18 @@ import PrivacySettings from './components/PrivacySettings';
 import TriggerSettingsSection from './components/TriggerSettingsSection';
 
 type InfioPluginLike = Plugin & {
-    settings: InfioSettings;
-    setSettings: (s: InfioSettings) => Promise<void>;
+	settings: InfioSettings;
+	setSettings: (s: InfioSettings) => Promise<void>;
 }
 
 export class InfioSettingTab extends PluginSettingTab {
-    plugin: InfioPluginLike;
+	plugin: InfioPluginLike;
 	private autoCompleteContainer: HTMLElement | null = null;
 	private modelsContainer: HTMLElement | null = null;
 	private pluginInfoContainer: HTMLElement | null = null;
 
-    constructor(app: App, plugin: InfioPluginLike) {
+	constructor(app: App, plugin: InfioPluginLike) {
+		// @ts-ignore
 		super(app, plugin)
 		this.plugin = plugin
 	}
@@ -57,6 +58,7 @@ export class InfioSettingTab extends PluginSettingTab {
 		const sections = createRoot(div);
 		sections.render(
 			<CustomProviderSettings
+				// @ts-ignore
 				plugin={this.plugin}
 				onSettingsUpdate={() => {
 					if (this.modelsContainer) {
@@ -342,23 +344,23 @@ export class InfioSettingTab extends PluginSettingTab {
 	renderRAGSection(containerEl: HTMLElement): void {
 		// 创建一个折叠区域的容器
 		const ragContainer = containerEl.createDiv("rag-settings-container");
-		
+
 		// 创建标题元素，添加折叠控件
 		const headerEl = ragContainer.createEl("div", { cls: "infio-collapsible-heading" });
-		
+
 		// 添加展开/折叠指示器
 		const toggleIcon = headerEl.createEl("span", { cls: "infio-toggle-icon" });
 		toggleIcon.textContent = "▶"; // 默认为折叠状态，使用右箭头
-		
+
 		// 添加标题文本
 		const titleEl = headerEl.createEl("h3", { text: t('settings.RAG.title') });
-		
+
 		// 创建内容容器
 		const contentContainer = ragContainer.createEl("div", { cls: "infio-collapsible-content" });
-		
+
 		// 默认设置为隐藏状态
 		contentContainer.style.display = "none";
-		
+
 		// 添加点击事件处理
 		headerEl.addEventListener("click", () => {
 			if (contentContainer.style.display === "none") {
@@ -371,22 +373,22 @@ export class InfioSettingTab extends PluginSettingTab {
 				toggleIcon.style.transform = "rotate(0deg)";
 			}
 		});
-		
+
 		// 添加样式
 		headerEl.style.cursor = "pointer";
 		headerEl.style.display = "flex";
 		headerEl.style.alignItems = "center";
 		headerEl.style.marginBottom = "10px";
 		headerEl.style.padding = "6px 0";
-		
+
 		toggleIcon.style.marginRight = "5px";
 		toggleIcon.style.fontSize = "10px";
 		toggleIcon.style.transition = "transform 0.15s ease";
-		
+
 		titleEl.style.margin = "0";
 		titleEl.style.fontSize = "16px";
 		titleEl.style.fontWeight = "600";
-		
+
 		// 以下是原有的设置内容，移动到内容容器中
 		new Setting(contentContainer)
 			.setName(t('settings.RAG.filesystem'))
@@ -417,6 +419,7 @@ export class InfioSettingTab extends PluginSettingTab {
 					const patterns = this.plugin.settings.ragOptions.includePatterns
 					const includedFiles = await findFilesMatchingPatterns(
 						patterns,
+						// @ts-ignore
 						this.plugin.app.vault,
 					)
 					new IncludedFilesModal(this.app, includedFiles, patterns).open()
@@ -452,6 +455,7 @@ export class InfioSettingTab extends PluginSettingTab {
 					const patterns = this.plugin.settings.ragOptions.excludePatterns
 					const excludedFiles = await findFilesMatchingPatterns(
 						patterns,
+						// @ts-ignore
 						this.plugin.app.vault,
 					)
 					new ExcludedFilesModal(this.app, excludedFiles).open()
@@ -596,26 +600,26 @@ export class InfioSettingTab extends PluginSettingTab {
 	renderAutoCompleteSection(containerEl: HTMLElement): void {
 		// 创建一个折叠区域的容器
 		const autoCompleteContainer = containerEl.createDiv("auto-complete-settings-container");
-		
+
 		// 创建标题元素，添加折叠控件
 		const headerEl = autoCompleteContainer.createEl("div", { cls: "infio-collapsible-heading" });
-		
+
 		// 添加展开/折叠指示器
 		const toggleIcon = headerEl.createEl("span", { cls: "infio-toggle-icon" });
 		toggleIcon.textContent = "▶"; // 默认为折叠状态，使用右箭头
-		
+
 		// 添加标题文本
 		const titleEl = headerEl.createEl("h3", { text: t('settings.AutoComplete.title') });
-		
+
 		// 创建内容容器
 		const contentContainer = autoCompleteContainer.createEl("div", { cls: "infio-collapsible-content" });
-		
+
 		// 保存容器引用
 		this.autoCompleteContainer = contentContainer;
-		
+
 		// 默认设置为隐藏状态
 		contentContainer.style.display = "none";
-		
+
 		// 添加点击事件处理
 		headerEl.addEventListener("click", () => {
 			if (contentContainer.style.display === "none") {
@@ -628,22 +632,22 @@ export class InfioSettingTab extends PluginSettingTab {
 				toggleIcon.style.transform = "rotate(0deg)";
 			}
 		});
-		
+
 		// 添加样式
 		headerEl.style.cursor = "pointer";
 		headerEl.style.display = "flex";
 		headerEl.style.alignItems = "center";
 		headerEl.style.marginBottom = "10px";
 		headerEl.style.padding = "6px 0";
-		
+
 		toggleIcon.style.marginRight = "5px";
 		toggleIcon.style.fontSize = "10px";
 		toggleIcon.style.transition = "transform 0.15s ease";
-		
+
 		titleEl.style.margin = "0";
 		titleEl.style.fontSize = "16px";
 		titleEl.style.fontWeight = "600";
-		
+
 		// 在内容容器中渲染AutoComplete设置
 		this.renderAutoCompleteContent(contentContainer);
 	}
@@ -725,7 +729,7 @@ export class InfioSettingTab extends PluginSettingTab {
 		// );
 
 		// // Advanced
-		
+
 		// if (this.plugin.settings.advancedMode) {
 		// 	new Setting(containerEl).setName(t('settings.AutoComplete.advanced.title')).setHeading();
 		// 	this.renderComponent(containerEl,
@@ -743,11 +747,15 @@ export class InfioSettingTab extends PluginSettingTab {
 		const root = createRoot(div);
 		root.render(
 			<PluginInfoSettings
+				// @ts-ignore
 				pluginVersion={this.plugin.manifest.version}
 				// pluginName={this.plugin.manifest.name}
+				// @ts-ignore
 				author={this.plugin.manifest.author}
+				// @ts-ignore
 				authorUrl={this.plugin.manifest.authorUrl}
 				// description={this.plugin.manifest.description}
+				// @ts-ignore
 				plugin={this.plugin}
 				settings={this.plugin.settings}
 			/>

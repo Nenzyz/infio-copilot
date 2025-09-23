@@ -9,7 +9,7 @@ import { ProUpgradeModal } from './components/modals/ProUpgradeModal';
 import { InfioSettings, parseInfioSettings } from './types/settings-mobile';
 import { getDeviceId, getOperatingSystem } from './utils/device-id';
 
-INFIO_BASE_URL = 'https://api.infio.app'
+const INFIO_BASE_URL = 'https://api.infio.app'
 
 // API响应类型定义
 export type CheckGeneralResponse = {
@@ -346,7 +346,7 @@ export const upgradeToProVersion = async (
 export class MobileSettingTab extends PluginSettingTab {
 	plugin: Plugin & { settings: InfioSettings; setSettings: (s: InfioSettings) => Promise<void> }
 
-	constructor(app: App, plugin: Plugin & { settings: InfioSettings; setSettings: (s: InfioSet·tings) => Promise<void> }) {
+	constructor(app: App, plugin: Plugin & { settings: InfioSettings; setSettings: (s: InfioSettings) => Promise<void> }) {
 		super(app, plugin)
 		this.plugin = plugin
  	}
