@@ -1,34 +1,15 @@
-/* eslint-disable no-console, @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+// @ts-check
+
 import JSZip from "jszip";
-import { Notice, Plugin, requestUrl } from "obsidian";
+import { App, Notice, Platform, Plugin, PluginSettingTab, Setting, requestUrl } from 'obsidian';
 
-import { INFIO_BASE_URL } from "../constants";
-import { getDeviceId, getOperatingSystem } from "../utils/device-id";
+import { ApiKeyModal } from './components/modals/ApiKeyModal';
+import { ProUpgradeModal } from './components/modals/ProUpgradeModal';
+// import { checkGeneral, fetchUserPlan, upgradeToProVersion } from './hooks/use-infio';
+import { InfioSettings, parseInfioSettings } from './types/settings-mobile';
+import { getDeviceId, getOperatingSystem } from './utils/device-id';
 
-// API响应类型定义
-export type UserPlanResponse = {
-	plan: string;
-	status: string;
-	dl_zip?: string;
-	[key: string]: unknown;
-};
-
-export type UpgradeResult = {
-	success: boolean;
-	message: string;
-};
-
-export const fetchUserPlan = async (apiKey: string): Promise<UserPlanResponse> => {
-	const response = await requestUrl({
-		url: `${INFIO_BASE_URL}/subscription/status`,
-		headers: {
-			Authorization: `Bearer ${apiKey}`,
-		},
-	});
-
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-	return response.json;
-}
+INFIO_BASE_URL = 'https://api.infio.app'
 
 // API响应类型定义
 export type CheckGeneralResponse = {
@@ -56,8 +37,8 @@ export const checkGeneral = async (
 		if (!apiKey) {
 			throw new Error('API密钥不能为空');
 		}
-        const deviceId = await getDeviceId();
-        const deviceName = getOperatingSystem();
+		const deviceId = await getDeviceId();
+		const deviceName = getOperatingSystem();
 		if (!deviceId || !deviceName) {
 			throw new Error('设备ID和设备名称不能为空');
 		}
@@ -87,7 +68,7 @@ export const checkGeneral = async (
 		}
 	} catch (error) {
 		console.error('检查 gerenal 会员失败:', error);
-		
+
 		// 返回错误响应格式
 		return {
 			success: false,
@@ -96,23 +77,30 @@ export const checkGeneral = async (
 	}
 };
 
-/**
- * 检查用户是否为Pro用户
- */
-// export const checkIsProUser = async (apiKey: string): Promise<boolean> => {
-// 	try {
-// 		if (!apiKey) {
-// 			return false;
-// 		}
-		
-// 		const userPlan = await fetchUserPlan(apiKey);
-// 		return userPlan.plan?.toLowerCase().startsWith('pro') || false;
-// 	} catch (error) {
-// 		// eslint-disable-next-line no-console
-// 		console.error('检查Pro用户状态失败:', error);
-// 		return false;
-// 	}
-// }
+// API响应类型定义
+export type UserPlanResponse = {
+	plan: string;
+	status: string;
+	dl_zip?: string;
+	[key: string]: unknown;
+};
+
+export type UpgradeResult = {
+	success: boolean;
+	message: string;
+};
+
+export const fetchUserPlan = async (apiKey: string): Promise<UserPlanResponse> => {
+	const response = await requestUrl({
+		url: `${INFIO_BASE_URL}/subscription/status`,
+		headers: {
+			Authorization: `Bearer ${apiKey}`,
+		},
+	});
+
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+	return response.json;
+}
 
 /**
  * 清理临时目录
@@ -137,12 +125,12 @@ const cleanupTempDirectory = async (adapter: Plugin['app']['vault']['adapter'], 
  * 下载并解压ZIP文件到临时目录
  */
 const downloadAndExtractToTemp = async (
-	adapter: Plugin['app']['vault']['adapter'], 
-	tempDir: string, 
+	adapter: Plugin['app']['vault']['adapter'],
+	tempDir: string,
 	downloadUrl: string
 ): Promise<void> => {
 	console.log(`开始下载文件: ${downloadUrl}`);
-	
+
 	// 下载ZIP文件
 	let zipResponse;
 	try {
@@ -195,11 +183,11 @@ const downloadAndExtractToTemp = async (
 		const files = Object.keys(zipData.files);
 		console.log(files);
 		console.log(`ZIP文件中包含 ${files.length} 个条目`);
-		
+
 		let extractedCount = 0;
 		for (const filename of files) {
 			const file = zipData.files[filename];
-			
+
 			// 跳过目录
 			if (file?.dir) {
 				console.log(`跳过目录: ${filename}`);
@@ -207,28 +195,28 @@ const downloadAndExtractToTemp = async (
 			}
 
 			console.log(`正在解压文件: ${filename}`);
-			
+
 			// 获取文件内容
 			const content = await file?.async("text");
-			
+
 			if (!content) {
 				console.log(`跳过空文件: ${filename}`);
 				continue;
 			}
-			
+
 			// 提取文件名（去掉路径前缀）
 			const pathParts = filename.split('/');
 			const actualFileName = pathParts[pathParts.length - 1];
-			
+
 			// 直接写入到临时目录根目录，不创建子目录
 			const tempFilePath = `${tempDir}/${actualFileName}`;
-			
+
 			// 写入文件到临时目录
 			await adapter.write(tempFilePath, content);
 			extractedCount++;
 			console.log(`文件解压完成: ${actualFileName} (${extractedCount}/${files.filter(f => !zipData.files[f].dir).length})`);
 		}
-		
+
 		console.log(`所有文件解压完成，共解压 ${extractedCount} 个文件`);
 	} catch (error) {
 		console.log("文件解压过程中出错:", error);
@@ -249,20 +237,20 @@ const copyFilesFromTemp = async (
 
 	// 需要复制的关键文件
 	const filesToCopy = ['main.js', 'styles.css', 'manifest.json'];
-	
+
 	// 检查必需文件是否存在
 	const mainJsPath = `${tempDir}/main.js`;
 	if (!(await adapter.exists(mainJsPath))) {
 		console.log("关键文件缺失: main.js");
 		throw new Error("升级文件不完整，缺少关键组件");
 	}
-	
+
 	// 复制文件
 	let copiedCount = 0;
 	for (const filename of filesToCopy) {
 		const tempFilePath = `${tempDir}/${filename}`;
 		const pluginFilePath = `${pluginDir}/${filename}`;
-		
+
 		try {
 			if (await adapter.exists(tempFilePath)) {
 				const content = await adapter.read(tempFilePath);
@@ -275,7 +263,7 @@ const copyFilesFromTemp = async (
 			throw new Error(`文件更新失败: ${filename}`);
 		}
 	}
-	
+
 	console.log(`文件复制完成，共复制 ${copiedCount} 个文件`);
 };
 
@@ -288,7 +276,7 @@ export const upgradeToProVersion = async (
 ): Promise<UpgradeResult> => {
 	const tempDir = '.infio_download_cache';
 	const adapter = plugin.app.vault.adapter;
-		
+
 	try {
 		// 获取插件目录
 		const pluginDir = plugin.manifest.dir;
@@ -301,8 +289,8 @@ export const upgradeToProVersion = async (
 		await cleanupTempDirectory(adapter, tempDir);
 
 		await downloadAndExtractToTemp(
-			adapter, 
-			tempDir, 
+			adapter,
+			tempDir,
 			dl_zip
 		);
 
@@ -316,15 +304,15 @@ export const upgradeToProVersion = async (
 			console.log(`重载插件: ${plugin.manifest.id}`);
 			try {
 				// 禁用插件
-                // @ts-expect-error obsidian typings do not expose this internal API
+				// @ts-expect-error obsidian typings do not expose this internal API
 				await plugin.app.plugins.disablePlugin(plugin.manifest.id);
 				console.log(`插件已禁用: ${plugin.manifest.id}`);
-				
+
 				// 启用插件
-                // @ts-expect-error obsidian typings do not expose this internal API
+				// @ts-expect-error obsidian typings do not expose this internal API
 				await plugin.app.plugins.enablePlugin(plugin.manifest.id);
 				console.log(`插件已重新启用: ${plugin.manifest.id}`);
-				
+
 				new Notice("插件重载完成");
 			} catch (error) {
 				console.error("插件重载失败:", error);
@@ -339,17 +327,165 @@ export const upgradeToProVersion = async (
 
 	} catch (error) {
 		console.log("错误详情:", error);
-		
+
 		// 发生错误时也要清理临时目录
 		await cleanupTempDirectory(adapter, tempDir);
-		
+
 		const errorMessage = error instanceof Error ? error.message : "升级过程中出现未知错误";
 		console.log(`最终错误信息: ${errorMessage}`);
 		new Notice(`加载失败: ${errorMessage}`);
-		
+
 		return {
 			success: false,
 			message: errorMessage
 		};
 	}
 }
+
+
+export class MobileSettingTab extends PluginSettingTab {
+	plugin: Plugin & { settings: InfioSettings; setSettings: (s: InfioSettings) => Promise<void> }
+
+	constructor(app: App, plugin: Plugin & { settings: InfioSettings; setSettings: (s: InfioSet·tings) => Promise<void> }) {
+		super(app, plugin)
+		this.plugin = plugin
+ 	}
+
+	display(): void {
+		const { containerEl } = this
+		containerEl.empty()
+
+		// Title
+		const title = containerEl.createEl('h2', { text: 'Infio Mobile' })
+ 		title.style.marginBottom = '8px'
+
+ 		// Description
+ 		containerEl.createEl('div', { text: '仅用于在移动端填写 API Key 以下载正式移动版本。' })
+
+ 		new Setting(containerEl)
+ 			.setName('Infio API Key')
+ 			.setDesc('用于验证并下载移动端正式版本')
+ 			.addText((text) => {
+ 				text
+ 					.setPlaceholder('sk-...')
+ 					.setValue(this.plugin.settings?.infioProvider?.apiKey || '')
+ 					.onChange(async (value) => {
+ 						await this.plugin.setSettings({
+ 							...this.plugin.settings,
+ 							infioProvider: {
+ 								...(this.plugin.settings?.infioProvider || { name: 'Infio', apiKey: '', baseUrl: '', useCustomUrl: false, models: [] }),
+ 								apiKey: value,
+ 							},
+ 							// 兼容字段
+ 							infioApiKey: value,
+ 						})
+ 						new Notice('已保存 API Key')
+ 					})
+ 			})
+
+		// 升级到 Pro 按钮
+		new Setting(containerEl)
+			.setName('升级到Pro')
+			.setDesc('填写 API Key 后点击下载并升级到正式移动版')
+			.addButton((button) => {
+				button.setButtonText('升级到Pro').onClick(async () => {
+					const originalText = button.buttonEl.textContent || '升级到Pro'
+					button.setDisabled(true)
+					button.setButtonText('加载中...')
+					try {
+						const apiKey = this.plugin.settings?.infioProvider?.apiKey || this.plugin.settings?.infioApiKey || ''
+						if (!apiKey) {
+							if (this.app) {
+								new ApiKeyModal(this.app).open()
+							} else {
+								new Notice('请先在Infio Provider设置中配置 Infio API Key')
+							}
+							return
+						}
+
+						const userPlan = await fetchUserPlan(apiKey)
+						const plan = (userPlan.plan || '').toLowerCase()
+						const isProUser = plan.startsWith('pro')
+						const isGeneralUser = plan.startsWith('general')
+						let dl_zip = userPlan.dl_zip || ''
+
+						if (!isProUser && !isGeneralUser) {
+							if (this.app) {
+								new ProUpgradeModal(this.app).open()
+							} else {
+								new Notice('您的账户不是会员用户, 请先购买会员')
+							}
+							return
+						}
+
+						if (isGeneralUser) {
+							const result = await checkGeneral(apiKey)
+							if (!result.success) {
+								if (this.app) {
+									new ProUpgradeModal(this.app).open()
+								} else {
+									new Notice('您的账户不是会员用户, 请先购买会员')
+								}
+								return
+							}
+							dl_zip = result.dl_zip || dl_zip
+						}
+
+						if (Platform.isMobile) {
+							dl_zip = dl_zip.replace('.zip', '.mobile.zip')
+						}
+
+						if (!dl_zip) {
+							new Notice('无法获取下载地址，请稍后再试')
+							return
+						}
+
+						const result = await upgradeToProVersion(this.plugin, dl_zip)
+						if (!result.success) {
+							new Notice(`加载失败: ${result.message}`)
+						}
+					} catch (_error) {
+						new Notice('升级过程中发生错误')
+						console.error(_error)
+					} finally {
+						button.setDisabled(false)
+						button.setButtonText(originalText)
+					}
+				})
+			})
+
+ 		// Hint for users
+ 		const hint = containerEl.createEl('div', { text: Platform.isMobile ? '已检测到移动端环境。填写 API Key 后，将在插件中验证并引导下载正式版本。' : '非移动端环境。' })
+ 		hint.style.marginTop = '8px'
+ 		; // keep style
+ 	}
+}
+
+export async function loadMobile(base: Plugin) {
+ 	const plugin = base as Plugin & {
+ 		settings: InfioSettings
+ 		loadSettings: () => Promise<void>
+ 		setSettings: (s: InfioSettings) => Promise<void>
+ 	}
+
+ 	plugin.loadSettings = async function () {
+ 		this.settings = parseInfioSettings(await this.loadData())
+ 		await this.saveData(this.settings)
+ 	}
+
+ 	plugin.setSettings = async function (newSettings: InfioSettings) {
+ 		this.settings = newSettings
+ 		await this.saveData(newSettings)
+ 	}
+
+ 	await plugin.loadSettings()
+
+ 	// Only settings tab
+ 	plugin.addSettingTab(new MobileSettingTab(plugin.app, plugin))
+}
+
+export function unloadMobile(_base: Plugin) {
+ 	// nothing to cleanup in lite mobile
+}
+
+

@@ -10,7 +10,6 @@ import * as React from "react";
 import { createRoot } from "react-dom/client";
 
 import { t } from '../lang/helpers';
-import InfioPlugin from '../main';
 import { InfioSettings } from '../types/settings';
 import { findFilesMatchingPatterns } from '../utils/glob-utils';
 
@@ -24,13 +23,18 @@ import PreprocessingSettings from './components/PreprocessingSettings';
 import PrivacySettings from './components/PrivacySettings';
 import TriggerSettingsSection from './components/TriggerSettingsSection';
 
+type InfioPluginLike = Plugin & {
+    settings: InfioSettings;
+    setSettings: (s: InfioSettings) => Promise<void>;
+}
+
 export class InfioSettingTab extends PluginSettingTab {
-	plugin: InfioPlugin;
+    plugin: InfioPluginLike;
 	private autoCompleteContainer: HTMLElement | null = null;
 	private modelsContainer: HTMLElement | null = null;
 	private pluginInfoContainer: HTMLElement | null = null;
 
-	constructor(app: App, plugin: InfioPlugin) {
+    constructor(app: App, plugin: InfioPluginLike) {
 		super(app, plugin)
 		this.plugin = plugin
 	}

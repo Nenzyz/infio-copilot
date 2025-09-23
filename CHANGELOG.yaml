@@ -1,4 +1,7 @@
 releases:
+  - version: "0.8.5"
+    features:
+      - "add mobile version for pro user, fix update error"
   - version: "0.8.4"
     features:
       - "test mobile version"
