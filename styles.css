@@ -73,8 +73,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: calc(var(--size-2-1) * -1);
-  padding: 0 var(--size-2-2);
+  margin-top: calc(var(--size-4-1) * -1);
 }
 
 .infio-chat-header-title {
@@ -90,8 +89,8 @@
 .infio-chat-current-workspace {
   display: inline-flex;
   align-items: center;
-  margin-left: var(--size-2-2);
-  padding: var(--size-2-1) var(--size-2-2);
+  margin-left: var(--size-4-2);
+  padding: var(--size-2-1) var(--size-4-1);
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
@@ -103,12 +102,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   transition: all 0.2s ease;
-  min-height: 28px;
 }
 
 .infio-chat-header-buttons {
   display: flex;
-  gap: var(--size-1-1);
+  gap: var(--size-4-2);
 }
 
 .infio-chat-container {
@@ -120,22 +118,22 @@
   .infio-stop-gen-btn {
     z-index: 1000;
     position: absolute;
-    bottom: 120px;
+    bottom: 160px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
     align-items: center;
-    gap: var(--size-2-2);
-    padding: var(--size-2-2) var(--size-4-3);
-    background-color: var(--background-modifier-error);
-    color: var(--text-on-accent);
-    border: none;
-    border-radius: var(--radius-l);
-    font-size: var(--font-ui-medium);
-    min-height: 44px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    gap: var(--size-4-1);
   }
+}
+
+/* Remove default outer padding for Chat view's Obsidian wrapper to avoid extra bottom space */
+.workspace-leaf-content[data-type="infio-chat-view"] > .view-content {
+  padding-bottom: 1rem !important;
+}
+
+.workspace-leaf-content[data-type="infio-chat-view"] > .view-header {
+  display: none !important;
 }
 
 /*
@@ -150,8 +148,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--size-2-1);
-  padding: 0 var(--size-2-2) var(--size-4-3) var(--size-2-2);
-  margin: var(--size-2-2) calc(var(--size-2-2) * -1) 0;
+  padding: 0 var(--size-4-3) var(--size-4-5) var(--size-4-3);
+  margin: var(--size-4-2) calc(var(--size-4-3) * -1) 0;
   /* 确保内容不会超出容器 */
   min-width: 0;
 
@@ -169,7 +167,7 @@
   .infio-chat-messages-assistant {
 		display: flex;
     flex-direction: column;
-    /* 防止助手消息超出容器 */
+    padding: var(--size-2-2);
     min-width: 0;
     max-width: 100%;
   }
@@ -181,8 +179,7 @@
  */
 .infio-starred-commands {
   border: none !important;
-	margin-bottom: var(--size-2-2);
-  padding: 0 var(--size-2-2);
+	margin-bottom: var(--size-4-2);
 }
 
 .infio-starred-commands-title {
@@ -205,18 +202,17 @@
   display: flex;
   align-items: center;
 	justify-content: center;
-  gap: var(--size-2-1);
-  padding: var(--size-2-1) var(--size-2-3);
+
+  padding: 1px 8px;
   background-color: rgba(86, 72, 29, 0.3) !important;
   border: none !important;
 	box-shadow: none !important;
   border-radius: var(--radius-l);
-  font-size: var(--font-ui-medium);
+  font-size: var(--font-ui-small);
   color: #f1c43f;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 40px;
-  max-width: none;
+  max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -594,20 +590,16 @@ button:not(.clickable-icon).infio-chat-list-dropdown {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 26px;
+  height: 26px;
   padding: 0;
   background-color: transparent;
   border-color: transparent;
   box-shadow: none;
   color: var(--text-muted);
-  border-radius: var(--radius-s);
-  transition: all 0.2s ease;
 
-  &:hover,
-  &:active {
+  &:hover {
     background-color: var(--background-modifier-hover);
-    color: var(--text-normal);
   }
 }
 
@@ -635,11 +627,10 @@ button:not(.clickable-icon).infio-chat-list-dropdown {
   border: var(--input-border-width) solid var(--background-modifier-border);
   color: var(--text-normal);
   font-family: inherit;
-  padding: var(--size-2-1);
+  padding: calc(var(--size-2-2) + 1px);
   font-size: var(--font-ui-medium);
   border-radius: var(--radius-s);
   outline: none;
-  margin: 0 var(--size-2-2) var(--size-2-2) var(--size-2-2);
 
   &:focus-within,
   &:focus,
@@ -653,82 +644,138 @@ button:not(.clickable-icon).infio-chat-list-dropdown {
 .infio-chat-user-input-files {
   display: flex;
   flex-direction: row;
-  gap: var(--size-2-1);
+  gap: var(--size-4-1);
   flex-wrap: wrap;
-  padding-bottom: var(--size-2-1);
+  padding-bottom: var(--size-4-1);
 }
 
 .infio-chat-user-input-controls {
   display: flex;
   flex-direction: row;
-  gap: var(--size-2-1);
+  gap: var(--size-4-1);
   justify-content: space-between;
   align-items: center;
-  height: 36px;
 
   .infio-chat-user-input-controls__model-select-container {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: var(--size-2-2);
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
   }
 
   .infio-chat-user-input-controls__buttons {
     flex-shrink: 0;
     display: flex;
-    gap: var(--size-2-1);
+    gap: var(--size-4-4);
     align-items: center;
+  }
+
+  /* Ensure selectors' height matches bar height and can shrink */
+  .infio-chat-input-mode-select,
+  .infio-chat-input-model-select {
+		radius: var(--radius-m);
+    padding: 0 var(--size-4-2);
+    max-width: 100%;
+  }
+
+  /* Make model name truncate more aggressively inside the controls bar */
+  .infio-chat-input-model-select__model-name {
+    max-width: 120px;
   }
 }
 
 .infio-chat-user-input-controls .infio-chat-user-input-submit-button {
   display: flex;
   align-items: center;
-  gap: var(--size-2-1);
-  font-size: var(--font-ui-smaller);
+  justify-content: center;
+  font-size: var(--font-smallest);
   color: var(--text-muted);
   background-color: transparent;
   border: none;
   box-shadow: none;
-  padding: var(--size-2-1) var(--size-2-2);
-  border-radius: var(--radius-s);
-  height: 32px;
-  min-width: 36px;
+  padding: 0 !important;
+  border-radius: var(--radius-s) !important;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 var(--size-4-4);
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
 
-  &:hover,
-  &:active {
+  &:hover {
     color: var(--text-normal);
     background-color: var(--background-modifier-hover);
   }
 
   .infio-chat-user-input-submit-button-icons {
+    width: 20px!important;
+    height: 20px!important;
     display: flex;
     align-items: center;
+    justify-content: center;
   }
+}
+
+/* Unique circular submit button with accent background */
+.infio-chat-user-input-controls .infio-chat-user-input-submit-circle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-4-2);
+  font-size: var(--font-smallest);
+  color: var(--text-on-accent);
+  background-color: var(--interactive-accent);
+  border: none;
+  box-shadow: none;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1;
+  flex: 0 0 var(--size-4-4);
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out, transform 0.15s ease-in-out;
+}
+
+.infio-chat-user-input-controls .infio-chat-user-input-submit-circle-button:hover {
+  background-color: var(--interactive-accent-hover);
+  transform: scale(1.05);
+}
+
+.infio-chat-user-input-controls .infio-chat-user-input-submit-circle-button:active {
+  transform: scale(0.95);
+}
+
+.infio-chat-user-input-controls .infio-chat-user-input-submit-circle-button .infio-chat-user-input-submit-circle-button-icons {
+	width: 20px!important;
+	height: 20px!important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .infio-chat-user-input-controls .infio-chat-user-input-vault-button {
   display: flex;
   align-items: center;
-  gap: var(--size-2-1);
-  font-size: var(--font-ui-smaller);
+  gap: var(--size-4-1);
+  font-size: var(--font-smallest);
   color: var(--text-muted);
   background-color: var(--background-secondary-alt) !important;
   border: none;
   box-shadow: none;
-  padding: var(--size-2-1) var(--size-2-2);
+  padding: 0 var(--size-2-1);
   border-radius: var(--radius-s);
-  height: 32px;
-  min-width: 36px;
+  height: var(--size-4-4);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease-in-out;
 
-  &:hover,
-  &:active {
+  &:hover {
     color: var(--text-normal);
-    background-color: var(--background-modifier-hover) !important;
   }
 
   .infio-chat-user-input-vault-button-icons {
@@ -743,13 +790,12 @@ button:not(.clickable-icon).infio-chat-list-dropdown {
   background-color: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
-  font-size: var(--font-ui-smaller);
-  padding: var(--size-2-1) var(--size-2-2);
+  font-size: var(--font-smallest);
+  padding: var(--size-2-1) var(--size-4-1);
   gap: var(--size-2-1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-height: 28px;
 
   &.infio-chat-user-input-file-badge-focused {
     border: 1px solid var(--interactive-accent);
@@ -816,27 +862,23 @@ button:not(.clickable-icon).infio-chat-list-dropdown {
 
 .infio-chat-edit-cancel-button {
   position: absolute;
-  top: var(--size-2-1);
-  right: var(--size-2-1);
+  top: 8px;
+  right: 8px;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-	background-color: transparent !important;
+	color: var(--text-on-accent-hover);
+	background-color: var(--interactive-accent-hover);
 	border: none !important;
 	box-shadow: none !important;
-	color: var(--text-muted);
 	padding: 0 !important;
 	margin: 0 !important;
-	width: 44px !important;
-	height: 44px !important;
-  border-radius: var(--radius-m) !important;
-  transition: all 0.2s ease !important;
+	width: 24px !important;
+	height: 24px !important;
 
-	&:hover,
-  &:active {
-		background-color: var(--background-modifier-hover) !important;
-    color: var(--text-normal) !important;
+	&:hover {
+		background-color: var(--interactive-accent-hover) !important;
 	}
 }
 
@@ -1020,11 +1062,15 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   gap: var(--size-4-1);
 }
 
+/* ===========================================
+   代码块样式 - 统一管理所有代码块相关样式
+   =========================================== */
+
+/* 基础代码块容器 */
 .infio-chat-code-block {
   position: relative;
   border: 1px solid var(--background-modifier-border);
   border-radius: var(--radius-s);
-  /* 防止代码块内容溢出 */
   overflow: hidden;
   word-wrap: break-word;
 }
@@ -1033,70 +1079,43 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   padding: 0;
 }
 
-/* 删除冲突的样式定义 */
-
-/* RawMarkdownBlock 代码块容器样式 */
+/* RawMarkdownBlock 专用代码块容器 */
 .infio-raw-markdown-code-block {
-  position: relative !important;
-  z-index: 100 !important;  /* 提高z-index优先级 */
-  margin: 0 !important;
-  padding: 0 !important;
-  /* 确保代码块不会被其他元素遮挡 */
-  clear: both;
-  overflow: visible;
-  /* 添加背景色以确保可见性 */
-  background: transparent;
-  /* 确保不被截断 */
+  position: relative;
+  margin: 0;
+  padding: 0;
   width: 100%;
+  overflow: visible;
+  clear: both;
   box-sizing: border-box;
+  /* 创建新的层叠上下文，避免z-index冲突 */
+  isolation: isolate;
 }
 
-/* 确保代码块内容正确显示 */
+/* RawMarkdownBlock 内的 pre 元素 */
 .infio-raw-markdown-code-block pre {
-  position: relative !important;
-  z-index: 101 !important;
-  margin: 0 !important;
-	padding: 0 !important;
-  /* 确保完整显示 */
-  width: 100% !important;
-  overflow: visible !important;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow: visible;
 }
 
+/* RawMarkdownBlock 内的 code 元素 */
 .infio-raw-markdown-code-block code {
-  position: relative !important;
-  z-index: 102 !important;
-  /* 确保代码内容完整显示 */
-  display: block !important;
-  width: 100% !important;
+  position: relative;
+  display: block;
+  width: 100%;
 }
 
-.infio-reasoning-content-wrapper {
-  /* Height restrictions removed to show full content */
-  /* 防止推理内容溢出 */
-  overflow-x: auto;
-  overflow-y: visible;
-}
-
-/* 折叠/展开功能相关样式 */
-.infio-reasoning-content-wrapper.collapsed {
-  max-height: 150px;
-  overflow-y: auto;
-  transition: max-height 0.3s ease-in-out;
-}
-
-.infio-reasoning-content-wrapper.expanded {
-  max-height: none;
-  overflow-y: visible;
-  transition: max-height 0.3s ease-in-out;
-}
-
+/* 代码块头部样式 */
 .infio-chat-code-block-header {
   display: none;
   justify-content: space-between;
   align-items: center;
   font-size: var(--font-smallest);
   padding: 0;
-	margin: 0;
+  margin: 0;
 }
 
 .infio-chat-code-block:hover .infio-chat-code-block-header {
@@ -1120,6 +1139,7 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   left: 0;
 }
 
+/* 代码块头部文件名样式 */
 .infio-chat-code-block-header-filename {
   padding-left: var(--size-4-2);
   font-size: var(--font-medium);
@@ -1136,6 +1156,7 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   flex-shrink: 0;
 }
 
+/* 代码块头部按钮样式 */
 .infio-chat-code-block-header-button {
   display: flex;
   gap: var(--size-4-1);
@@ -1155,9 +1176,7 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   padding-right: var(--size-4-1);
 }
 
-.infio-chat-code-block.has-filename
-  .infio-chat-code-block-header-button
-  button {
+.infio-chat-code-block.has-filename .infio-chat-code-block-header-button button {
   box-shadow: none;
   border: 0;
   padding: 0 var(--size-4-2);
@@ -1166,10 +1185,10 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   font-size: var(--font-medium);
   height: 100%;
   cursor: pointer;
+}
 
-  &:hover {
-    background-color: var(--background-modifier-hover);
-  }
+.infio-chat-code-block.has-filename .infio-chat-code-block-header-button button:hover {
+  background-color: var(--background-modifier-hover);
 }
 
 .infio-chat-code-block-header-button button {
@@ -1178,12 +1197,36 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   font-size: var(--font-ui-smaller);
 }
 
+/* 代码块内容样式 */
+.infio-chat-code-block-content {
+  margin: 0;
+}
+
+/* 特殊按钮样式 */
 .infio-dataview-query-button {
   color: #008000;
 }
 
-.infio-chat-code-block-content {
-  margin: 0;
+/* ===========================================
+   推理内容包装器样式
+   =========================================== */
+
+.infio-reasoning-content-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+/* 折叠/展开功能相关样式 */
+.infio-reasoning-content-wrapper.collapsed {
+  max-height: 150px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease-in-out;
+}
+
+.infio-reasoning-content-wrapper.expanded {
+  max-height: none;
+  overflow-y: visible;
+  transition: max-height 0.3s ease-in-out;
 }
 
 /* Read File Block - Minimal styling for better integration */
@@ -1564,11 +1607,11 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
  */
 
 .infio-chat-lexical-content-editable-root {
-  min-height: 36px;
-  max-height: 400px;
+  min-height: 62px;
+  max-height: 800px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--size-2-1);
+
 }
 
 .infio-chat-lexical-content-editable-root .mention {
@@ -1584,11 +1627,10 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
 }
 
 .infio-search-lexical-content-editable-root {
-  min-height: 40px;
-  max-height: 300px;
+  min-height: 36px;
+  max-height: 120px;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--size-2-1);
   /* 确保编辑器不会影响外部滚动 */
   contain: size style;
 }
@@ -1742,27 +1784,22 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   display: flex;
   align-items: center;
   justify-content: end;
-  gap: var(--size-2-1);
 
   button {
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 44px;
-    width: 44px;
+    height: 20px;
+    width: 20px;
     padding: 0;
     background-color: transparent;
     border-color: transparent;
     box-shadow: none;
     color: var(--text-faint);
     cursor: pointer;
-    border-radius: var(--radius-m);
-    transition: all 0.2s ease;
 
-    &:hover,
-    &:active {
+    &:hover {
       background-color: var(--background-modifier-hover);
-      color: var(--text-normal);
     }
   }
 
@@ -2315,49 +2352,6 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   width: 70%;
 }
 
-/* 移动端专用优化 */
-
-/* 增加触摸目标的最小尺寸 */
-button, .clickable-icon, [role="button"] {
-  min-height: 36px;
-  min-width: 36px;
-  touch-action: manipulation;
-}
-
-/* 输入框按钮使用较小的尺寸以节省空间 */
-.infio-chat-user-input-controls button,
-.infio-chat-user-input-controls .clickable-icon {
-  min-height: 32px;
-  min-width: 32px;
-}
-
-/* 聊天头部按钮保持36px尺寸 */
-.infio-chat-header-buttons button {
-  min-height: 36px;
-  min-width: 36px;
-}
-
-/* 优化滚动性能 */
-.infio-chat-messages,
-.infio-chat-lexical-content-editable-root,
-.infio-search-lexical-content-editable-root {
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-}
-
-/* 优化文本选择 */
-.infio-chat-messages {
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  -ms-user-select: text;
-  user-select: text;
-}
-
-/* 防止双击缩放 */
-button, .clickable-icon {
-  touch-action: manipulation;
-}
-
 /* control pc and mobile view */
 
 .desktop-only {
@@ -2463,8 +2457,7 @@ button, .clickable-icon {
   }
 }
 
-.infio-llm-add-model-button {
-}
+/* removed empty rule: .infio-llm-add-model-button */
 
 /*
 * ai block, use edit inline
@@ -2650,7 +2643,6 @@ select.infio-ai-block-model-select::-ms-expand {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding-bottom: 488px;
   }
 
   /* 确保 diff 相关样式也限制作用域 */
@@ -2763,21 +2755,17 @@ button.infio-chat-input-model-select {
   box-shadow: none;
   border: 1;
   padding: var(--size-2-1) var(--size-2-2);
-  font-size: var(--font-ui-smaller);
-  font-weight: var(--font-medium);
   color: var(--text-muted);
   display: flex;
   justify-content: flex-start;
   align-items: center;
   cursor: pointer;
-  height: 32px;
   max-width: 100%;
-  gap: var(--size-2-1);
+  gap: var(--size-2-2);
   border-radius: var(--radius-s);
-  transition: all 0.2s ease;
+  transition: all 0.15s ease-in-out;
 
-  &:hover,
-  &:active {
+  &:hover {
     color: var(--text-normal);
     background-color: var(--background-modifier-hover);
   }
@@ -2877,7 +2865,6 @@ button.infio-chat-input-model-select {
   align-items: center;
   height: 100%;
   width: 100%;
-  padding: var(--size-4-3);
 }
 
 .infio-chat-loading-container {
@@ -3077,10 +3064,8 @@ button.infio-chat-input-model-select {
 }
 
 .infio-commands-header-title {
-  color: var(--text-normal);
-  font-size: 28px;
-  font-weight: 500;
-  margin: 0 0 var(--size-4-3) 0;
+	margin: 0;
+	font-size: 24px;
 }
 
 .infio-commands-label {
@@ -3736,18 +3721,18 @@ button.infio-chat-input-model-select {
 
 .infio-markdown-actions {
 	position: absolute;
-	top: 8px;
-	right: 8px;
+	bottom: 1px;
+	right: 1px;
 	display: flex;
 	gap: 4px;
 	opacity: 0.7;
 	visibility: visible;
-	transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
 	padding: 0px;
-	z-index: 50;  /* 降低z-index，确保不会遮挡代码块 */
+	z-index: 10;  /* 降低z-index，确保不会遮挡代码块 */
 	/* 确保不会遮挡代码块 */
 	pointer-events: none;
 }
+
 .infio-markdown-actions button {
     display: flex;
     align-items: center;
@@ -3758,18 +3743,19 @@ button.infio-chat-input-model-select {
     background-color: transparent;
     border-color: transparent;
     box-shadow: none;
-    color: var(--text-faint);
+    color: var(--text-muted);
+	  border-radius: var(--radius-s);
     cursor: pointer;
     /* 恢复按钮的点击事件 */
     pointer-events: auto;
-}
 
-.infio-markdown-actions button:hover {
-    background-color: var(--background-modifier-hover);
-}
+    &:hover {
+      background-color: var(--interactive-accent-hover);
+    }
+  }
 
-.infio-markdown-actions .infio-chat-message-actions-icon--copied {
-    color: var(--text-muted);
+.infio-chat-message-actions-icon--copied {
+  color: var(--text-muted);
 }
 
 .infio-markdown-container-with-actions:hover .infio-markdown-actions {
@@ -4036,4 +4022,137 @@ button.infio-chat-input-model-select {
 	&:active {
 		transform: translateY(0);
 	}
+}
+
+/* Structured Progress Styles */
+.infio-structured-progress {
+  padding: 16px;
+  background-color: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  margin: 12px 0;
+}
+
+.infio-progress-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.infio-progress-step {
+  display: flex;
+  align-items: flex-start;
+  position: relative;
+  min-height: 60px;
+}
+
+.infio-progress-step-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 16px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.infio-progress-step-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  z-index: 2;
+  position: relative;
+}
+
+.infio-progress-step-line {
+  width: 2px;
+  height: 40px;
+  background-color: var(--background-modifier-border);
+  margin-top: 8px;
+}
+
+.infio-progress-step-line.completed {
+  background-color: var(--color-green, #28a745);
+}
+
+.infio-progress-step-content {
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.infio-progress-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.infio-progress-step-title {
+  font-size: var(--font-ui-medium);
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.infio-progress-step.running .infio-progress-step-title {
+  color: var(--interactive-accent);
+}
+
+.infio-progress-step-counter {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+  background-color: var(--background-modifier-border);
+  padding: 2px 6px;
+  border-radius: var(--radius-s);
+}
+
+.infio-progress-step-description {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+  margin: 4px 0 0 0;
+  line-height: 1.4;
+}
+
+.infio-progress-step-details {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  margin: 2px 0 0 0;
+  line-height: 1.3;
+  font-family: var(--font-monospace);
+}
+
+.infio-progress-step-bar {
+  width: 100%;
+  height: 4px;
+  background-color: var(--background-modifier-border);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.infio-progress-step-bar-fill {
+  height: 100%;
+  background-color: var(--interactive-accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Tool result content display */
+.infio-tool-result-content {
+  font-family: var(--font-monospace);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 12px;
+  background-color: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow: auto;
 }

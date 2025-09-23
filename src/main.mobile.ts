@@ -360,7 +360,9 @@ export class MobileSettingTab extends PluginSettingTab {
  		title.style.marginBottom = '8px'
 
  		// Description
- 		containerEl.createEl('div', { text: '仅用于在移动端填写 API Key 以下载正式移动版本。' })
+		const descEl = containerEl.createEl('div')
+		descEl.appendText('移动端需要会员才能使用，需要填入 API Key 然后点击升级Pro按钮 ')
+		descEl.createEl('a', { text: '获取 API Key', href: 'https://infio.app/keys', attr: { target: '_blank' } })
 
  		new Setting(containerEl)
  			.setName('Infio API Key')
@@ -379,7 +381,6 @@ export class MobileSettingTab extends PluginSettingTab {
  							// 兼容字段
  							infioApiKey: value,
  						})
- 						new Notice('已保存 API Key')
  					})
  			})
 
@@ -453,10 +454,6 @@ export class MobileSettingTab extends PluginSettingTab {
 					}
 				})
 			})
-
- 		// Hint for users
- 		const hint = containerEl.createEl('div', { text: Platform.isMobile ? '已检测到移动端环境。填写 API Key 后，将在插件中验证并引导下载正式版本。' : '非移动端环境。' })
- 		hint.style.marginTop = '8px'
  		; // keep style
  	}
 }
