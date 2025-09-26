@@ -2,7 +2,8 @@ import path from 'path'
 import esbuild from 'esbuild'
 import process from 'process'
 import builtins from 'builtin-modules'
-import inlineWorkerPlugin from "esbuild-plugin-inline-worker";
+import inlineWorkerPlugin from "esbuild-plugin-inline-worker"
+import { visualizer } from "esbuild-visualizer";
 const nodeBuiltins = [...builtins, ...builtins.map((mod) => `node:${mod}`)]
 
 const banner = `/*
@@ -19,11 +20,13 @@ const context = await esbuild.context({
 	},
 	entryPoints: ['src/main.ts'],
 	bundle: true,
-	plugins: [inlineWorkerPlugin({
-		define: {
-			'process': '{}', // 继承主配置
-		},
-	})],
+	plugins: [
+		inlineWorkerPlugin({
+			define: {
+				'process': '{}', // 继承主配置
+			},
+		})
+	],
 	external: [
 		'fs',
 		'obsidian',
@@ -53,7 +56,7 @@ const context = await esbuild.context({
 		'process.env.NODE_ENV': JSON.stringify(prod ? 'production' : 'development'),
 	},
 	inject: [path.resolve('import-meta-url-shim.js')],
-	target: 'es2020',
+	target: 'es2022',
 	logLevel: 'info', // 'debug' for more detailed output
 	logOverride: {
 		'import-is-undefined': 'silent', // 忽略 import-is-undefined 警告
@@ -62,10 +65,38 @@ const context = await esbuild.context({
 	treeShaking: true,
 	outfile: 'main.js',
 	minify: prod,
+	// 生产环境去掉调试语句与版权注释以进一步减小体积
+	drop: prod ? ['console', 'debugger'] : [],
+	legalComments: prod ? 'none' : 'inline',
+	metafile: true,
 })
 
 if (prod) {
-	await context.rebuild()
+	const result = await context.rebuild()
+	
+	// 如果启用分析，生成可视化报告
+	if (process.env.ANALYZE && result.metafile) {
+		const fs = await import('fs')
+		
+		// 将 metafile 写入临时文件，然后使用命令行工具
+		fs.writeFileSync('metafile.json', JSON.stringify(result.metafile))
+		console.log('📊 Generating bundle analysis report...')
+		
+		// 使用命令行工具生成报告
+		const { exec } = await import('child_process')
+		exec('npx esbuild-visualizer --metadata metafile.json --filename bundle-analysis.html --template treemap --open', (error, stdout, stderr) => {
+			if (error) {
+				console.error('Error generating report:', error)
+			} else {
+				console.log('📊 Bundle analysis report generated: bundle-analysis.html')
+				// 清理临时文件
+				try {
+					fs.unlinkSync('metafile.json')
+				} catch (e) {}
+			}
+		})
+	}
+	
 	process.exit(0)
 } else {
 	await context.watch()

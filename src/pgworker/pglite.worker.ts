@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { PGlite } from '@electric-sql/pglite'
+// @ts-expect-error: types for '@electric-sql/pglite/worker' not resolved under current moduleResolution
 import { PGliteWorkerOptions, worker } from '@electric-sql/pglite/worker'
 
-import { pgliteResources } from '../database/pglite-resources'
 import { migrations } from '../database/sql'
 
 export { }
@@ -12,39 +11,40 @@ const loadPGliteResources = async (): Promise<{
 	wasmModule: WebAssembly.Module
 	vectorExtensionBundlePath: URL
 }> => {
-	try {
-		// Convert base64 to binary data
-		const wasmBinary = Buffer.from(pgliteResources.wasmBase64, 'base64')
-		const dataBinary = Buffer.from(pgliteResources.dataBase64, 'base64')
-		const vectorBinary = Buffer.from(pgliteResources.vectorBase64, 'base64')
+		const [wasmRes, dataRes, vectorRes] = await Promise.all([
+			fetch('https://infio.dev/postgres.wasm', { cache: 'no-store' }),
+			fetch('https://infio.dev/postgres.data', { cache: 'no-store' }),
+			fetch('https://infio.dev/vector.tar.gz', { cache: 'no-store' }),
+		])
 
-		// Create blobs from binary data
-		const fsBundle = new Blob([dataBinary], {
+		if (!wasmRes.ok || !dataRes.ok || !vectorRes.ok) {
+			throw new Error('Failed to download PGlite assets from infio.dev')
+		}
+
+		const wasmBuffer = await wasmRes.arrayBuffer()
+		const wasmModule = await WebAssembly.compile(wasmBuffer)
+
+		const dataBuffer = await dataRes.arrayBuffer()
+		const fsBundle = new Blob([dataBuffer], {
 			type: 'application/octet-stream',
 		})
-		const wasmModule = await WebAssembly.compile(wasmBinary)
 
-		// Create a blob URL for the vector extension
-		const vectorBlob = new Blob([vectorBinary], {
+		const vectorBuffer = await vectorRes.arrayBuffer()
+		const vectorBlob = new Blob([vectorBuffer], {
 			type: 'application/gzip',
 		})
 		const vectorExtensionBundlePath = URL.createObjectURL(vectorBlob)
 
-		return {
-			fsBundle,
-			wasmModule,
-			vectorExtensionBundlePath: new URL(vectorExtensionBundlePath),
-		}
-	} catch (error) {
-		console.error('Error loading PGlite resources:', error)
-		throw error
-	}
+        return {
+            fsBundle,
+            wasmModule,
+            vectorExtensionBundlePath: new URL(vectorExtensionBundlePath),
+        }
 }
 
 worker({
 	async init(options: PGliteWorkerOptions, filesystem: string) {
-		let db: PGlite;
-		try {
+    let db: PGlite;
 			const { fsBundle, wasmModule, vectorExtensionBundlePath } =
 				await loadPGliteResources()
 			if (filesystem === 'idb') {
@@ -70,15 +70,10 @@ worker({
 					},
 				})
 			}
-		} catch (error) {
-			console.error('Error creating PGlite instance:', error)
-			throw error
-		}
 
 		// Execute SQL migrations
-		for (const [_key, migration] of Object.entries(migrations)) {
+		for (const migration of Object.values(migrations)) {
 			// Split SQL into individual commands and execute them one by one
-			console.log("migration: ", migration.description)
 			const commands = migration.sql.split('\n\n').filter(cmd => cmd.trim());
 			for (const command of commands) {
 				await db.exec(command);
