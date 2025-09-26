@@ -106,7 +106,7 @@
 
 .infio-chat-header-buttons {
   display: flex;
-  gap: var(--size-2-1);
+  gap: var(--size-4-2);
 }
 
 .infio-chat-container {
