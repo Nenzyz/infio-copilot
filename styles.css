@@ -106,7 +106,7 @@
 
 .infio-chat-header-buttons {
   display: flex;
-  gap: var(--size-4-2);
+  gap: var(--size-2-1);
 }
 
 .infio-chat-container {
@@ -125,15 +125,6 @@
     align-items: center;
     gap: var(--size-4-1);
   }
-}
-
-/* Remove default outer padding for Chat view's Obsidian wrapper to avoid extra bottom space */
-.workspace-leaf-content[data-type="infio-chat-view"] > .view-content {
-  padding-bottom: 1rem !important;
-}
-
-.workspace-leaf-content[data-type="infio-chat-view"] > .view-header {
-  display: none !important;
 }
 
 /*
@@ -655,108 +646,46 @@ button:not(.clickable-icon).infio-chat-list-dropdown {
   gap: var(--size-4-1);
   justify-content: space-between;
   align-items: center;
+  height: var(--size-4-4);
 
   .infio-chat-user-input-controls__model-select-container {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: var(--size-2-2);
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
   }
 
   .infio-chat-user-input-controls__buttons {
     flex-shrink: 0;
     display: flex;
-    gap: var(--size-4-4);
+    gap: var(--size-4-3);
     align-items: center;
-  }
-
-  /* Ensure selectors' height matches bar height and can shrink */
-  .infio-chat-input-mode-select,
-  .infio-chat-input-model-select {
-		radius: var(--radius-m);
-    padding: 0 var(--size-4-2);
-    max-width: 100%;
-  }
-
-  /* Make model name truncate more aggressively inside the controls bar */
-  .infio-chat-input-model-select__model-name {
-    max-width: 120px;
   }
 }
 
 .infio-chat-user-input-controls .infio-chat-user-input-submit-button {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: var(--size-4-1);
   font-size: var(--font-smallest);
   color: var(--text-muted);
   background-color: transparent;
   border: none;
   box-shadow: none;
-  padding: 0 !important;
-  border-radius: var(--radius-s) !important;
-  aspect-ratio: 1 / 1;
-  flex: 0 0 var(--size-4-4);
-  box-sizing: border-box;
-  appearance: none;
-  -webkit-appearance: none;
+  padding: 0 var(--size-2-1);
+  border-radius: var(--radius-s);
+  height: var(--size-4-4);
   cursor: pointer;
-  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+  transition: color 0.15s ease-in-out;
 
   &:hover {
     color: var(--text-normal);
-    background-color: var(--background-modifier-hover);
   }
 
   .infio-chat-user-input-submit-button-icons {
-    width: 20px!important;
-    height: 20px!important;
     display: flex;
     align-items: center;
-    justify-content: center;
   }
-}
-
-/* Unique circular submit button with accent background */
-.infio-chat-user-input-controls .infio-chat-user-input-submit-circle-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--size-4-2);
-  font-size: var(--font-smallest);
-  color: var(--text-on-accent);
-  background-color: var(--interactive-accent);
-  border: none;
-  box-shadow: none;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  aspect-ratio: 1 / 1;
-  flex: 0 0 var(--size-4-4);
-  box-sizing: border-box;
-  appearance: none;
-  -webkit-appearance: none;
-  cursor: pointer;
-  transition: background-color 0.15s ease-in-out, transform 0.15s ease-in-out;
-}
-
-.infio-chat-user-input-controls .infio-chat-user-input-submit-circle-button:hover {
-  background-color: var(--interactive-accent-hover);
-  transform: scale(1.05);
-}
-
-.infio-chat-user-input-controls .infio-chat-user-input-submit-circle-button:active {
-  transform: scale(0.95);
-}
-
-.infio-chat-user-input-controls .infio-chat-user-input-submit-circle-button .infio-chat-user-input-submit-circle-button-icons {
-	width: 20px!important;
-	height: 20px!important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .infio-chat-user-input-controls .infio-chat-user-input-vault-button {
@@ -2457,7 +2386,8 @@ input[type='text'].infio-chat-list-dropdown-item-title-input {
   }
 }
 
-/* removed empty rule: .infio-llm-add-model-button */
+.infio-llm-add-model-button {
+}
 
 /*
 * ai block, use edit inline
@@ -2643,6 +2573,7 @@ select.infio-ai-block-model-select::-ms-expand {
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    padding-bottom: 488px;
   }
 
   /* 确保 diff 相关样式也限制作用域 */
@@ -2755,11 +2686,14 @@ button.infio-chat-input-model-select {
   box-shadow: none;
   border: 1;
   padding: var(--size-2-1) var(--size-2-2);
+  font-size: var(--font-smallest);
+  font-weight: var(--font-medium);
   color: var(--text-muted);
   display: flex;
   justify-content: flex-start;
   align-items: center;
   cursor: pointer;
+  height: var(--size-4-4);
   max-width: 100%;
   gap: var(--size-2-2);
   border-radius: var(--radius-s);
