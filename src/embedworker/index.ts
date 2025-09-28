@@ -1,12 +1,12 @@
 import { EmbeddingManager } from "./EmbeddingManager";
 
-// 创建一个单例的 Manager，以便在整个应用中共享同一个 Worker
+// Create a singleton Manager to share the same Worker across the entire application
 export const embeddingManager = new EmbeddingManager();
 
-// 导出 EmbeddingManager 类以便其他地方使用
+// Export EmbeddingManager class for use in other places
 export { EmbeddingManager };
 
-// 导出类型定义
+// Export type definitions
 export type {
 	EmbedResult,
 	ModelLoadResult,

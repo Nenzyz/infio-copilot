@@ -35,7 +35,7 @@ export function useChatHistory(): UseChatHistory {
 		setChatList(conversations)
 	}, [chatManager])
 
-	// 获取当前工作区
+	// Get current workspace
 	const currentWorkspace = settings.workspace || 'vault'
 
 	useEffect(() => {

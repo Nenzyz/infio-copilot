@@ -109,7 +109,7 @@ export function isRegexValid(value: string): boolean {
 
 export function isValidIgnorePattern(value: string): boolean {
 	if (typeof value !== "string" || value.length === 0) return false;
-	// 不允许以单个反斜杠结尾
+	// Do not allow ending with a single backslash
 	if (/\\$/.test(value)) return false;
 
 	const openerToCloser: Record<string, string> = { "[": "]", "{": "}", "(": ")" };
@@ -127,7 +127,7 @@ export function isValidIgnorePattern(value: string): boolean {
 		if (isEscaped(value, i)) continue;
 
 		if (ch === "[" || ch === "{" || ch === "(") {
-			// 括号需作为 extglob 的一部分，如 !(...), ?(...), +(...), *(...), @(...)
+			// Parentheses need to be part of extglob, like !(...), ?(...), +(...), *(...), @(...)
 			if (ch === "(") {
 				const prev = value[i - 1];
 				if (!validExtglobLeaders.has(prev ?? "")) return false;

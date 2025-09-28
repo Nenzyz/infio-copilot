@@ -5,7 +5,7 @@ import { Notice, Plugin, requestUrl } from "obsidian";
 import { INFIO_BASE_URL } from "../constants";
 import { getDeviceId, getOperatingSystem } from "../utils/device-id";
 
-// API响应类型定义
+// API response type definitions
 export type UserPlanResponse = {
 	plan: string;
 	status: string;
@@ -30,7 +30,7 @@ export const fetchUserPlan = async (apiKey: string): Promise<UserPlanResponse> =
 	return response.json;
 }
 
-// API响应类型定义
+// API response type definitions
 export type CheckGeneralResponse = {
 	success: boolean;
 	message: string;
@@ -88,7 +88,7 @@ export const checkGeneral = async (
 	} catch (error) {
 		console.error('检查 gerenal 会员失败:', error);
 		
-		// 返回错误响应格式
+		// Return error response format
 		return {
 			success: false,
 			message: error instanceof Error ? error.message : '检查设备状态时出现未知错误'
@@ -109,7 +109,7 @@ export const checkGeneral = async (
 // 		return userPlan.plan?.toLowerCase().startsWith('pro') || false;
 // 	} catch (error) {
 // 		// eslint-disable-next-line no-console
-// 		console.error('检查Pro用户状态失败:', error);
+// 		console.error('Failed to check Pro user status:', error);
 // 		return false;
 // 	}
 // }
@@ -119,16 +119,16 @@ export const checkGeneral = async (
  */
 const cleanupTempDirectory = async (adapter: Plugin['app']['vault']['adapter'], tempDir: string): Promise<void> => {
 	try {
-		// 检查目录是否存在
+		// Check if directory exists
 		if (await adapter.exists(tempDir)) {
-			console.log(`清理临时目录: ${tempDir}`);
-			// 删除临时目录及其所有内容
+			console.log(`Cleaning temp directory: ${tempDir}`);
+			// Delete temp directory and all its contents
 			await adapter.rmdir(tempDir, true);
-			console.log(`临时目录清理完成: ${tempDir}`);
+			console.log(`Temp directory cleanup complete: ${tempDir}`);
 		}
 	} catch (error) {
-		console.log("清理临时目录失败:", error);
-		// 不抛出错误，因为这不是关键操作
+		console.log("Failed to clean temp directory:", error);
+		// Don't throw error since this is not a critical operation
 	}
 };
 
@@ -141,97 +141,97 @@ const downloadAndExtractToTemp = async (
 	tempDir: string, 
 	downloadUrl: string
 ): Promise<void> => {
-	console.log(`开始下载文件: ${downloadUrl}`);
+	console.log(`Starting file download: ${downloadUrl}`);
 	
-	// 下载ZIP文件
+	// Download ZIP file
 	let zipResponse;
 	try {
 		zipResponse = await requestUrl({
 			url: downloadUrl,
 			method: "GET",
 		});
-		console.log("文件下载完成，状态:", zipResponse.status);
+		console.log("File download complete, status:", zipResponse.status);
 	} catch (error) {
-		console.log("下载失败:", error);
+		console.log("Download failed:", error);
 		throw new Error("网络连接失败，无法下载Pro版本文件");
 	}
 
 	if (!zipResponse.arrayBuffer) {
-		console.log("响应格式无效，缺少arrayBuffer");
+		console.log("Invalid response format, missing arrayBuffer");
 		throw new Error("下载的文件格式无效");
 	}
 
-	console.log("正在解压文件到临时目录...");
-	console.log(`开始解压文件到临时目录: ${tempDir}`);
+	console.log("Extracting files to temp directory...");
+	console.log(`Starting file extraction to temp directory: ${tempDir}`);
 
-	// 解压ZIP文件
+	// Extract ZIP file
 	let zipData: JSZip;
 	try {
 		const zip = new JSZip();
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 		zipData = await zip.loadAsync(zipResponse.arrayBuffer);
-		console.log("ZIP文件解析成功");
+		console.log("ZIP file parsed successfully");
 	} catch (error) {
-		console.log("ZIP文件解析失败:", error);
+		console.log("ZIP file parsing failed:", error);
 		throw new Error("文件解压失败，可能文件已损坏");
 	}
 
-	// 创建临时目录
+	// Create temp directory
 	try {
 		if (!(await adapter.exists(tempDir))) {
 			await adapter.mkdir(tempDir);
-			console.log(`临时目录创建成功: ${tempDir}`);
+			console.log(`Temp directory created successfully: ${tempDir}`);
 		} else {
-			console.log(`临时目录已存在: ${tempDir}`);
+			console.log(`Temp directory already exists: ${tempDir}`);
 		}
 	} catch (error) {
-		console.log("创建临时目录失败:", error);
+		console.log("Failed to create temp directory:", error);
 		throw new Error("无法创建临时目录");
 	}
 
-	// 解压所有文件到临时目录
+	// Extract all files to temp directory
 	try {
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 		const files = Object.keys(zipData.files);
 		console.log(files);
-		console.log(`ZIP文件中包含 ${files.length} 个条目`);
+		console.log(`ZIP file contains ${files.length} entries`);
 		
 		let extractedCount = 0;
 		for (const filename of files) {
 			const file = zipData.files[filename];
 			
-			// 跳过目录
+			// Skip directories
 			if (file?.dir) {
-				console.log(`跳过目录: ${filename}`);
+				console.log(`Skipping directory: ${filename}`);
 				continue;
 			}
 
-			console.log(`正在解压文件: ${filename}`);
+			console.log(`Extracting file: ${filename}`);
 			
-			// 获取文件内容
+			// Get file content
 			const content = await file?.async("text");
 			
 			if (!content) {
-				console.log(`跳过空文件: ${filename}`);
+				console.log(`Skipping empty file: ${filename}`);
 				continue;
 			}
 			
-			// 提取文件名（去掉路径前缀）
+			// Extract filename (remove path prefix)
 			const pathParts = filename.split('/');
 			const actualFileName = pathParts[pathParts.length - 1];
 			
-			// 直接写入到临时目录根目录，不创建子目录
+			// Write directly to temp directory root, don't create subdirectories
 			const tempFilePath = `${tempDir}/${actualFileName}`;
 			
-			// 写入文件到临时目录
+			// Write file to temp directory
 			await adapter.write(tempFilePath, content);
 			extractedCount++;
-			console.log(`文件解压完成: ${actualFileName} (${extractedCount}/${files.filter(f => !zipData.files[f].dir).length})`);
+			console.log(`File extraction complete: ${actualFileName} (${extractedCount}/${files.filter(f => !zipData.files[f].dir).length})`);
 		}
 		
-		console.log(`所有文件解压完成，共解压 ${extractedCount} 个文件`);
+		console.log(`All file extraction complete, extracted ${extractedCount} files`);
 	} catch (error) {
-		console.log("文件解压过程中出错:", error);
+		console.log("Error during file extraction:", error);
 		throw new Error("文件解压过程中出现错误");
 	}
 };
@@ -244,20 +244,20 @@ const copyFilesFromTemp = async (
 	tempDir: string,
 	pluginDir: string
 ): Promise<void> => {
-	console.log("正在更新插件文件...");
-	console.log(`开始从临时目录复制文件到插件目录: ${tempDir} -> ${pluginDir}`);
+	console.log("Updating plugin files...");
+	console.log(`Starting file copy from temp directory to plugin directory: ${tempDir} -> ${pluginDir}`);
 
-	// 需要复制的关键文件
+	// Key files that need to be copied
 	const filesToCopy = ['main.js', 'styles.css', 'manifest.json'];
 	
-	// 检查必需文件是否存在
+	// Check if required files exist
 	const mainJsPath = `${tempDir}/main.js`;
 	if (!(await adapter.exists(mainJsPath))) {
-		console.log("关键文件缺失: main.js");
+		console.log("Critical file missing: main.js");
 		throw new Error("升级文件不完整，缺少关键组件");
 	}
 	
-	// 复制文件
+	// Copy files
 	let copiedCount = 0;
 	for (const filename of filesToCopy) {
 		const tempFilePath = `${tempDir}/${filename}`;
@@ -269,14 +269,14 @@ const copyFilesFromTemp = async (
 				await adapter.write(pluginFilePath, content);
 				copiedCount++;
 			} else if (filename !== 'main.js') {
-				console.log(`可选文件不存在，跳过: ${filename}`);
+				console.log(`Optional file does not exist, skipping: ${filename}`);
 			}
 		} catch (error) {
 			throw new Error(`文件更新失败: ${filename}`);
 		}
 	}
 	
-	console.log(`文件复制完成，共复制 ${copiedCount} 个文件`);
+	console.log(`File copy complete, copied ${copiedCount} files`);
 };
 
 /**
@@ -290,10 +290,10 @@ export const upgradeToProVersion = async (
 	const adapter = plugin.app.vault.adapter;
 		
 	try {
-		// 获取插件目录
+		// Get plugin directory
 		const pluginDir = plugin.manifest.dir;
 		if (!pluginDir) {
-			console.log("插件目录未找到");
+			console.log("Plugin directory not found");
 			throw new Error("无法找到插件目录");
 		}
 		new Notice("正在加载...");
@@ -313,17 +313,17 @@ export const upgradeToProVersion = async (
 		await cleanupTempDirectory(adapter, tempDir);
 
 		setTimeout(async () => {
-			console.log(`重载插件: ${plugin.manifest.id}`);
+			console.log(`Reloading plugin: ${plugin.manifest.id}`);
 			try {
-				// 禁用插件
+				// Disable plugin
                 // @ts-expect-error obsidian typings do not expose this internal API
 				await plugin.app.plugins.disablePlugin(plugin.manifest.id);
-				console.log(`插件已禁用: ${plugin.manifest.id}`);
+				console.log(`Plugin disabled: ${plugin.manifest.id}`);
 				
-				// 启用插件
+				// Enable plugin
                 // @ts-expect-error obsidian typings do not expose this internal API
 				await plugin.app.plugins.enablePlugin(plugin.manifest.id);
-				console.log(`插件已重新启用: ${plugin.manifest.id}`);
+				console.log(`Plugin re-enabled: ${plugin.manifest.id}`);
 				
 				new Notice("插件重载完成");
 			} catch (error) {
@@ -338,13 +338,13 @@ export const upgradeToProVersion = async (
 		};
 
 	} catch (error) {
-		console.log("错误详情:", error);
+		console.log("Error details:", error);
 		
-		// 发生错误时也要清理临时目录
+		// Clean temp directory even when error occurs
 		await cleanupTempDirectory(adapter, tempDir);
 		
 		const errorMessage = error instanceof Error ? error.message : "升级过程中出现未知错误";
-		console.log(`最终错误信息: ${errorMessage}`);
+		console.log(`Final error message: ${errorMessage}`);
 		new Notice(`加载失败: ${errorMessage}`);
 		
 		return {

@@ -498,49 +498,54 @@ export async function loadDesktop(base: Plugin) {
 
 	plugin.addCommand({
 		id: 'test-dataview-simple',
-		name: '测试 Dataview（简单查询）',
+		name: t('main.testDataview'),
 		callback: async () => {
-			console.log('开始测试 Dataview...');
-			if (!plugin.dataviewManager) { new Notice('DataviewManager 未初始化'); return; }
+			console.log('Starting Dataview test...');
+			if (!plugin.dataviewManager) { new Notice(t('notifications.dataviewManagerNotInitialized')); return; }
 			if (!plugin.dataviewManager.isDataviewAvailable()) {
-				new Notice('Dataview 插件未安装或未启用');
-				console.log('Dataview API 不可用');
+				new Notice(t('notifications.dataviewNotInstalled'));
+				console.log('Dataview API not available');
 				return;
 			}
-			console.log('Dataview API 可用，执行简单查询...');
+			console.log('Dataview API available, executing simple query...');
 			try {
 				const result = await plugin.dataviewManager.executeQuery('LIST FROM ""');
 				if (result.success) {
-					new Notice('Dataview 查询成功！结果已在控制台输出');
+					new Notice(t('notifications.dataviewQuerySuccess'));
 				} else {
-					new Notice(`查询失败: ${result.error}`);
-					console.error('查询错误:', result.error);
+					new Notice(t('notifications.queryFailed', { error: result.error }));
+					console.error('Query error:', result.error);
 				}
 			} catch (error) {
-				console.error('执行测试查询失败:', error);
-				new Notice('执行测试查询时发生错误');
+				console.error('Failed to execute test query:', error);
+				new Notice(t('notifications.queryError'));
 			}
 		},
 	});
 
 	plugin.addCommand({
 		id: 'test-local-embed',
-		name: '测试本地嵌入模型',
+		name: t('main.testLocalEmbedding'),
 		callback: async () => {
 			try {
-				if (!plugin.embeddingManager) { new Notice('EmbeddingManager 未初始化', 5000); return; }
+				if (!plugin.embeddingManager) { new Notice(t('notifications.embeddingManagerNotInitialized'), 5000); return; }
 				await plugin.embeddingManager.loadModel("Xenova/all-MiniLM-L6-v2", true);
 				const testText = "hello world";
 				const result = await plugin.embeddingManager.embed(testText);
-				const resultMessage = `\n\t嵌入测试完成！\n\t文本: "${testText}"\n\tToken 数量: ${result.tokens}\n\t向量维度: ${result.vec.length}\n\t向量前4个值: [${result.vec.slice(0, 4).map(v => v.toFixed(4)).join(', ')}...]\n\t\t\t\t\t\t`.trim();
-				console.log('本地嵌入测试结果:', result);
+				const resultMessage = t('embeddingTest.resultMessage', {
+					text: testText,
+					tokens: result.tokens,
+					dimension: result.vec.length,
+					values: result.vec.slice(0, 4).map(v => v.toFixed(4)).join(', ')
+				});
+				console.log('Local embedding test result:', result);
 				const modal = new Modal(plugin.app);
-				modal.titleEl.setText('本地嵌入测试结果');
+				modal.titleEl.setText(t('embeddingTest.modalTitle'));
 				modal.contentEl.createEl('pre', { text: resultMessage });
 				modal.open();
 			} catch (error) {
-				console.error('嵌入测试失败:', error);
-				new Notice(`嵌入测试失败: ${error.message}`, 5000);
+				console.error('Embedding test failed:', error);
+				new Notice(t('notifications.embeddingTestFailed', { error: error.message }), 5000);
 			}
 		},
 	});

@@ -11,7 +11,7 @@ interface EmbedResult {
 	error?: string;
 }
 
-// 定义工作器消息的参数类型
+// Define parameter types for worker messages
 interface LoadParams {
 	model_key: string;
 	use_gpu?: boolean;
@@ -37,7 +37,7 @@ interface WorkerResponse {
 	worker_id?: string;
 }
 
-// 定义 Transformers.js 相关类型
+// Define Transformers.js related types
 interface TransformersEnv {
 	allowLocalModels: boolean;
 	allowRemoteModels: boolean;
@@ -81,7 +81,7 @@ interface GlobalTransformers {
 	env: TransformersEnv;
 }
 
-// 全局变量
+// Global variables
 let model: ModelInfo | null = null;
 let pipeline: unknown = null;
 let tokenizer: unknown = null;
@@ -89,42 +89,42 @@ let processing_message = false;
 let transformersLoaded = false;
 
 /**
- * 测试一个网络端点是否可访问
- * @param {string} url 要测试的 URL
- * @param {number} timeout 超时时间 (毫秒)
- * @returns {Promise<boolean>} 如果可访问则返回 true，否则返回 false
+ * Test whether a network endpoint is accessible
+ * @param {string} url The URL to test
+ * @param {number} timeout Timeout in milliseconds
+ * @returns {Promise<boolean>} Returns true if accessible, otherwise false
  */
 async function testEndpoint(url: string, timeout = 3000): Promise<boolean> {
-	// AbortController 用于在超时后取消 fetch 请求
+	// AbortController used to cancel fetch requests after timeout
 	const controller = new AbortController();
 	const signal = controller.signal;
 
 	const timeoutId = setTimeout(() => {
-		console.log(`请求 ${url} 超时。`);
+		console.log(`Request to ${url} timed out.`);
 		controller.abort();
 	}, timeout);
 
 	try {
-		console.log(`正在测试端点: ${url}`);
-		// 我们使用 'HEAD' 方法，因为它只请求头部信息，非常快速，适合做存活检测。
-		// 'no-cors' 模式允许我们在浏览器环境中进行跨域请求以进行简单的可达性测试，
-		// 即使我们不能读取响应内容，请求成功也意味着网络是通的。
+		console.log(`Testing endpoint: ${url}`);
+		// We use 'HEAD' method because it only requests header information, very fast, suitable for liveness detection.
+		// 'no-cors' mode allows us to make cross-domain requests in browser environment for simple reachability testing,
+		// Even if we can't read response content, successful request means network is accessible.
 		await fetch(url, { method: 'HEAD', mode: 'no-cors', signal });
 		
-		// 如果 fetch 成功，清除超时定时器并返回 true
+		// If fetch succeeds, clear timeout timer and return true
 		clearTimeout(timeoutId);
-		console.log(`端点 ${url} 可访问。`);
+		console.log(`Endpoint ${url} is accessible.`);
 		return true;
 	} catch (error) {
-		// 如果发生网络错误或请求被中止 (超时)，则进入 catch 块
-		clearTimeout(timeoutId); // 同样需要清除定时器
-		console.warn(`无法访问端点 ${url}:`, error instanceof Error && error.name === 'AbortError' ? '超时' : (error as Error).message);
+		// If network error occurs or request is aborted (timeout), enter catch block
+		clearTimeout(timeoutId); // Also need to clear timer
+		console.warn(`Cannot access endpoint ${url}:`, error instanceof Error && error.name === 'AbortError' ? 'timeout' : (error as Error).message);
 		return false;
 	}
 }
 
 /**
- * 初始化 Hugging Face 端点，如果默认的不可用，则自动切换到备用镜像。
+ * Initialize Hugging Face endpoint, automatically switch to fallback mirror if default is unavailable.
  */
 async function initializeEndpoint(): Promise<void> {
 	const defaultEndpoint = 'https://huggingface.co';
@@ -135,38 +135,38 @@ async function initializeEndpoint(): Promise<void> {
 	const globalTransformers = globalThis as unknown as { transformers?: GlobalTransformers };
 	
 	if (!isDefaultReachable) {
-		console.log(`默认端点不可达，将切换到备用镜像: ${fallbackEndpoint}`);
-		// 这是关键步骤：在代码中设置 endpoint
+		console.log(`Default endpoint unreachable, switching to fallback mirror: ${fallbackEndpoint}`);
+		// This is the key step: set endpoint in code
 		if (globalTransformers.transformers?.env) {
 			globalTransformers.transformers.env.remoteHost = fallbackEndpoint;
 		}
 	} else {
-		console.log(`将使用默认端点: ${defaultEndpoint}`);
+		console.log(`Will use default endpoint: ${defaultEndpoint}`);
 	}
 }
 
-// 动态导入 Transformers.js
+// Dynamically import Transformers.js
 async function loadTransformers(): Promise<void> {
 	if (transformersLoaded) return;
 
 	try {
 		console.log('Loading Transformers.js...');
 
-		// 首先初始化端点
+		// First initialize endpoint
 		await initializeEndpoint();
 
-		// 尝试使用旧版本的 Transformers.js，它在 Worker 中更稳定
+		// Try using older version of Transformers.js, which is more stable in Workers
 		const { pipeline: pipelineFactory, env, AutoTokenizer } = await import('@xenova/transformers');
 
-		// 配置环境以适应浏览器 Worker
+		// Configure environment to adapt to browser Worker
 		env.allowLocalModels = false;
 		env.allowRemoteModels = true;
 
-		// 配置 WASM 后端 - 修复线程配置
-		env.backends.onnx.wasm.numThreads = 1; // 在 Worker 中使用单线程，避免竞态条件
+		// Configure WASM backend - fix thread configuration
+		env.backends.onnx.wasm.numThreads = 1; // Use single thread in Worker to avoid race conditions
 		env.backends.onnx.wasm.simd = true;
 
-		// 禁用 Node.js 特定功能
+		// Disable Node.js specific features
 		env.useFS = false;
 		env.useBrowserCache = true;
 
@@ -189,7 +189,7 @@ async function loadModel(modelKey: string, useGpu: boolean = false): Promise<{ m
 	try {
 		console.log(`Loading model: ${modelKey}, GPU: ${useGpu}`);
 
-		// 确保 Transformers.js 已加载
+		// Ensure Transformers.js is loaded
 		await loadTransformers();
 
 		const globalTransformers = globalThis as unknown as { transformers?: GlobalTransformers };
@@ -201,26 +201,26 @@ async function loadModel(modelKey: string, useGpu: boolean = false): Promise<{ m
 
 		const { pipelineFactory, AutoTokenizer } = transformers;
 
-		// 配置管道选项
+		// Configure pipeline options
 		const pipelineOpts: PipelineOptions = {
 			quantized: true,
-			// 修复进度回调，添加错误处理
+			// Fix progress callback, add error handling
 			progress_callback: (progress: unknown) => {
 				try {
 					if (progress && typeof progress === 'object') {
 						// console.log('Model loading progress:', progress);
 					}
 				} catch (error) {
-					// 忽略进度回调错误，避免中断模型加载
+					// Ignore progress callback errors to avoid interrupting model loading
 					console.warn('Progress callback error (ignored):', error);
 				}
 			}
 		};
 
-		// GPU 配置更加谨慎
+		// GPU configuration more cautious
 		if (useGpu) {
 			try {
-				// 检查 WebGPU 支持
+				// Check WebGPU support
 				console.log("useGpu", useGpu);
 				if (typeof navigator !== 'undefined' && 'gpu' in navigator) {
 					const gpu = (navigator as { gpu?: { requestAdapter?: () => unknown } }).gpu;
@@ -241,10 +241,10 @@ async function loadModel(modelKey: string, useGpu: boolean = false): Promise<{ m
 			console.log('[Transformers] Using CPU');
 		}
 
-		// 创建嵌入管道
+		// Create embedding pipeline
 		pipeline = await pipelineFactory('feature-extraction', modelKey, pipelineOpts);
 
-		// 创建分词器
+		// Create tokenizer
 		tokenizer = await AutoTokenizer.from_pretrained(modelKey);
 
 		model = {
@@ -308,14 +308,14 @@ async function embedBatch(inputs: EmbedInput[]): Promise<EmbedResult[]> {
 
 		console.log(`Processing ${inputs.length} inputs`);
 
-		// 过滤空输入
+		// Filter empty inputs
 		const filteredInputs = inputs.filter(item => item.embed_input && item.embed_input.length > 0);
 
 		if (filteredInputs.length === 0) {
 			return [];
 		}
 
-		// 批处理大小（可以根据需要调整）
+		// Batch size (can be adjusted as needed)
 		const batchSize = 1;
 
 		if (filteredInputs.length > batchSize) {
@@ -341,20 +341,20 @@ async function embedBatch(inputs: EmbedInput[]): Promise<EmbedResult[]> {
 
 async function processBatch(batchInputs: EmbedInput[]): Promise<EmbedResult[]> {
 	try {
-		// 计算每个输入的 token 数量
+		// Calculate token count for each input
 		const tokens = await Promise.all(
 			batchInputs.map(item => countTokens(item.embed_input))
 		);
 
-		// 准备嵌入输入（处理超长文本）
-		const maxTokens = 512; // 大多数模型的最大 token 限制
+		// Prepare embedding inputs (handle overly long text)
+		const maxTokens = 512; // Maximum token limit for most models
 		const embedInputs = await Promise.all(
 			batchInputs.map(async (item, i) => {
 				if (tokens[i].tokens < maxTokens) {
 					return item.embed_input;
 				}
 
-				// 截断超长文本
+				// Truncate overly long text
 				let tokenCt = tokens[i].tokens;
 				let truncatedInput = item.embed_input;
 
@@ -370,11 +370,11 @@ async function processBatch(batchInputs: EmbedInput[]): Promise<EmbedResult[]> {
 			})
 		);
 
-		// 生成嵌入向量
+		// Generate embedding vectors
 		const pipelineCall = pipeline as (inputs: string[], options: { pooling: string; normalize: boolean }) => Promise<{ data: number[] }[]>;
 		const resp = await pipelineCall(embedInputs, { pooling: 'mean', normalize: true });
 
-		// 处理结果
+		// Process results
 		return batchInputs.map((item, i) => ({
 			vec: Array.from(resp[i].data).map((val: number) => Math.round(val * 1e8) / 1e8),
 			tokens: tokens[i].tokens,
@@ -384,7 +384,7 @@ async function processBatch(batchInputs: EmbedInput[]): Promise<EmbedResult[]> {
 	} catch (error) {
 		console.error('Error processing batch:', error);
 
-		// 如果批处理失败，尝试逐个处理
+		// If batch processing fails, try processing individually
 		const results = await Promise.all(
 			batchInputs.map(async (item): Promise<EmbedResult> => {
 				try {
@@ -437,7 +437,7 @@ async function processMessage(data: WorkerMessage): Promise<WorkerResponse> {
 					throw new Error('Model not loaded');
 				}
 
-				// 等待之前的处理完成
+				// Wait for previous processing to complete
 				if (processing_message) {
 					while (processing_message) {
 						await new Promise(resolve => setTimeout(resolve, 100));
@@ -456,7 +456,7 @@ async function processMessage(data: WorkerMessage): Promise<WorkerResponse> {
 					throw new Error('Model not loaded');
 				}
 
-				// 等待之前的处理完成
+				// Wait for previous processing to complete
 				if (processing_message) {
 					while (processing_message) {
 						await new Promise(resolve => setTimeout(resolve, 100));
@@ -486,7 +486,7 @@ self.addEventListener('message', async (event) => {
 	try {
 		console.log('Worker received message:', event.data);
 
-		// 验证消息格式
+		// Validate message format
 		if (!event.data || typeof event.data !== 'object') {
 			console.error('Invalid message format received');
 			self.postMessage({
@@ -522,7 +522,7 @@ self.addEventListener('unhandledrejection', (event) => {
 		id: -1,
 		error: `Worker unhandled rejection: ${event.reason || 'Unknown error'}`
 	});
-	event.preventDefault(); // 防止默认的控制台错误
+	event.preventDefault(); // Prevent default console errors
 });
 
 console.log('Embedding worker ready'); 

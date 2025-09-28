@@ -87,7 +87,7 @@ export async function onEnt(
 	})
 } 
 
-// 添加余弦相似度计算函数
+// Add cosine similarity calculation function
 function cosineSimilarity(vecA: number[], vecB: number[]): number {
 	const dotProduct = vecA.reduce((sum, a, i) => sum + a * vecB[i], 0);
 	const magnitudeA = Math.sqrt(vecA.reduce((sum, a) => sum + a * a, 0));
@@ -141,15 +141,15 @@ async function serperSearch(query: string, serperApiKey: string, serperSearchEng
 
 async function filterByEmbedding(query: string, results: SearchResult[], ragEngine: RAGEngine): Promise<SearchResult[]> {
 
-	// 如果没有结果，直接返回空数组
+	// If no results, return empty array directly
 	if (results.length === 0) {
 		return [];
 	}
 
-	// 获取查询的嵌入向量
+	// Get query embedding vector
 	const queryEmbedding = await ragEngine.getEmbedding(query);
 
-	// 并行处理所有结果的嵌入向量计算
+	// Process all results' embedding vector calculations in parallel
 	const processedResults = await Promise.all(
 		results.map(async (result) => {
 			const resultEmbedding = await ragEngine.getEmbedding(result.snippet);
@@ -163,7 +163,7 @@ async function filterByEmbedding(query: string, results: SearchResult[], ragEngi
 		})
 	);
 
-	// 根据相似度过滤和排序结果
+	// Filter and sort results based on similarity
 	const filteredResults = processedResults
 		.filter(result => result.similarity > 0.5)
 		.sort((a, b) => b.similarity - a.similarity)
@@ -173,11 +173,11 @@ async function filterByEmbedding(query: string, results: SearchResult[], ragEngi
 }
 
 async function fetchByLocalTool(url: string): Promise<string> {
-	// 检查是否为视频内容
+	// Check if it's video content
 	if (isVideoUrl(url)) {
 		const provider = getVideoProvider(url)
 		
-		// 对于YouTube，使用现有的转录功能
+		// For YouTube, use existing transcription functionality
 		if (provider === 'youtube') {
 			try {
 				// TODO: pass language based on user preferences
@@ -189,20 +189,20 @@ Video Transcript:
 ${transcript.map((t) => `${t.offset}: ${t.text}`).join('\n')}`
 			} catch (error) {
 				console.warn('Failed to extract YouTube transcript:', error)
-				// 如果转录失败，返回视频信息提示
+				// If transcription fails, return video info hint
 				return `Video Content Detected: ${url}
 Platform: YouTube
 Note: This is a video content. Transcript extraction failed. Please use specialized video processing tools for content analysis.`
 			}
 		}
 		
-		// 对于其他视频平台，返回视频信息提示
+		// For other video platforms, return video info hint
 		return `Video Content Detected: ${url}
 Platform: ${provider || 'Unknown'}
 Note: This is a video content. Please use specialized video processing tools for content analysis.`
 	}
 
-	// 非视频内容，使用常规方式获取网页内容
+	// Non-video content, use regular method to get webpage content
 	const response = await requestUrl({ url })
 	return htmlToMarkdown(response.text)
 }

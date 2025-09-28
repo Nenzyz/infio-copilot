@@ -224,6 +224,8 @@ export default {
 		autocompleteEnable: 'Autocomplete enable',
 		autocompleteDisable: 'Autocomplete disable',
 		inlineEditCommand: 'Inline edit',
+		testDataview: 'Test Dataview (simple query)',
+		testLocalEmbedding: 'Test local embedding model',
 	},
 	notifications: {
 		rebuildingIndex: 'Rebuilding vault index...',
@@ -236,6 +238,13 @@ export default {
 		selectTextFirst: 'Please select some text first',
 		migrationFailed: 'Failed to migrate to JSON storage. Please check the console for details.',
 		reloadingInfio: 'Reloading "infio" due to migration',
+		dataviewManagerNotInitialized: 'DataviewManager not initialized',
+		dataviewNotInstalled: 'Dataview plugin not installed or not enabled',
+		dataviewQuerySuccess: 'Dataview query successful! Results have been output to the console',
+		queryFailed: 'Query failed: {error}',
+		queryError: 'Error occurred while executing test query',
+		embeddingManagerNotInitialized: 'EmbeddingManager not initialized',
+		embeddingTestFailed: 'Embedding test failed: {error}',
 	},
 	applyView: {
 		applyingFile: 'Applying: {{file}}',
@@ -743,5 +752,9 @@ export default {
 			saveFailed: "Save failed, please try again",
 			defaultName: "Workspace {date}"
 		}
+	},
+	embeddingTest: {
+		modalTitle: "Local Embedding Test Results",
+		resultMessage: "Embedding test completed!\nText: \"{text}\"\nToken count: {tokens}\nVector dimension: {dimension}\nFirst 4 vector values: [{values}...]"
 	}
 }

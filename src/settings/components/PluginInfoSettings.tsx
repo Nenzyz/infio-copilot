@@ -27,7 +27,7 @@ export default function PluginInfoSettings({
 	// Convert SVG string to data URL for proper display
 	const logoDataUrl = `data:image/svg+xml;base64,${btoa(getInfioLogoSvg())}`;
 
-	// 处理升级按钮点击
+	// Handle upgrade button click
 	const handleUpgrade = async () => {
 		if (!plugin) {
 			new Notice('无法获取插件实例');
@@ -46,7 +46,7 @@ export default function PluginInfoSettings({
 		setIsUpgrading(true);
 
 		try {
-			// 检查是否为会员(Pro|General)
+			// Check if user is a member (Pro|General)
 			const userPlan = await fetchUserPlan(settings.infioProvider.apiKey);
 			console.log('userPlan', userPlan);
 			const isProUser = userPlan.plan?.toLowerCase().startsWith('pro') || false;
@@ -74,7 +74,7 @@ export default function PluginInfoSettings({
 				dl_zip = result.dl_zip;
 			}
 
-			// 执行升级
+			// Execute upgrade
 			// check is mobile platform
 			if (Platform.isMobile) {
 				dl_zip = dl_zip.replace('.zip', '.mobile.zip');

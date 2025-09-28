@@ -1,8 +1,8 @@
-// 导入完整的嵌入 Worker
+// Import complete embedding Worker
 // @ts-nocheck
 import EmbedWorker from './embed.worker';
 
-// 类型定义
+// Type definitions
 export interface EmbedResult {
 	vec: number[];
 	tokens: number;
@@ -21,7 +21,7 @@ export interface TokenCountResult {
 	tokens: number;
 }
 
-// Worker 消息类型定义
+// Worker message type definitions
 interface WorkerMessage {
 	id: number;
 	result?: unknown;
@@ -41,15 +41,15 @@ export class EmbeddingManager {
 	private currentModelId: string | null = null;
 
 	constructor() {
-		// 创建 Worker，使用与 pgworker 相同的模式
+		// Create Worker using the same pattern as pgworker
 		this.worker = new EmbedWorker();
 
-		// 统一监听来自 Worker 的所有消息
+		// Unified listener for all messages from Worker
 		this.worker.onmessage = (event) => {
 			try {
 				const { id, result, error } = event.data as WorkerMessage;
 
-				// 根据返回的 id 找到对应的 Promise 回调
+				// Find the corresponding Promise callback based on the returned id
 				const request = this.requests.get(id);
 
 				if (request) {
@@ -58,12 +58,12 @@ export class EmbeddingManager {
 					} else {
 						request.resolve(result);
 					}
-					// 完成后从 Map 中删除
+					// Remove from Map after completion
 					this.requests.delete(id);
 				}
 			} catch (err) {
 				console.error("Error processing worker message:", err);
-				// 拒绝所有待处理的请求
+				// Reject all pending requests
 				this.requests.forEach(request => {
 					request.reject(new Error(`Worker message processing error: ${(err as Error).message}`));
 				});
@@ -73,13 +73,13 @@ export class EmbeddingManager {
 
 		this.worker.onerror = (error) => {
 			console.error("EmbeddingWorker error:", error);
-			// 拒绝所有待处理的请求
+			// Reject all pending requests
 			this.requests.forEach(request => {
 				request.reject(new Error(`Worker error: ${error.message || 'Unknown worker error'}`));
 			});
 			this.requests.clear();
 
-			// 重置状态
+			// Reset state
 			this.isModelLoaded = false;
 			this.currentModelId = null;
 		};
@@ -97,13 +97,13 @@ export class EmbeddingManager {
 		console.log(`Loading embedding model: ${modelId}, GPU: ${useGpu}`);
 
 		try {
-			// 如果已经加载了相同的模型，直接返回
+			// If the same model is already loaded, return directly
 			if (this.isModelLoaded && this.currentModelId === modelId) {
 				console.log(`Model ${modelId} already loaded`);
 				return { model_loaded: true };
 			}
 
-			// 如果加载了不同的模型，先卸载
+			// If a different model is loaded, unload it first
 			if (this.isModelLoaded && this.currentModelId !== modelId) {
 				console.log(`Unloading previous model: ${this.currentModelId}`);
 				await this.unloadModel();
@@ -131,9 +131,9 @@ export class EmbeddingManager {
 	}
 
 	/**
-	 * 为一批文本生成嵌入向量。
-	 * @param texts 要处理的文本数组
-	 * @returns 返回一个包含向量和 token 信息的对象数组
+	 * Generate embedding vectors for a batch of texts.
+	 * @param texts Array of texts to process
+	 * @returns Returns an array of objects containing vector and token information
 	 */
 	public async embedBatch(texts: string[]): Promise<EmbedResult[]> {
 		if (!this.isModelLoaded) {
@@ -159,9 +159,9 @@ export class EmbeddingManager {
 	}
 
 	/**
-	 * 为单个文本生成嵌入向量。
-	 * @param text 要处理的文本
-	 * @returns 返回包含向量和 token 信息的对象
+	 * Generate embedding vector for a single text.
+	 * @param text Text to process
+	 * @returns Returns object containing vector and token information
 	 */
 	public async embed(text: string): Promise<EmbedResult> {
 		if (!text || text.trim().length === 0) {
@@ -177,8 +177,8 @@ export class EmbeddingManager {
 	}
 
 	/**
-	 * 计算文本的 token 数量。
-	 * @param text 要计算的文本
+	 * Count the number of tokens in text.
+	 * @param text Text to count
 	 */
 	public async countTokens(text: string): Promise<TokenCountResult> {
 		if (!this.isModelLoaded) {
@@ -198,7 +198,7 @@ export class EmbeddingManager {
 	}
 
 	/**
-	 * 卸载模型，释放内存。
+	 * Unload model and free memory.
 	 */
 	public async unloadModel(): Promise<ModelUnloadResult> {
 		if (!this.isModelLoaded) {
@@ -217,7 +217,7 @@ export class EmbeddingManager {
 			return result;
 		} catch (error) {
 			console.error('Failed to unload model:', error);
-			// 即使卸载失败，也重置状态
+			// Reset state even if unloading fails
 			this.isModelLoaded = false;
 			this.currentModelId = null;
 			throw error;
@@ -225,21 +225,21 @@ export class EmbeddingManager {
 	}
 
 	/**
-	 * 检查模型是否已加载。
+	 * Check if model is loaded.
 	 */
 	public get modelLoaded(): boolean {
 		return this.isModelLoaded;
 	}
 
 	/**
-	 * 获取当前加载的模型ID。
+	 * Get current loaded model ID.
 	 */
 	public get currentModel(): string | null {
 		return this.currentModelId;
 	}
 
 	/**
-	 * 获取支持的模型列表。
+	 * Get list of supported models.
 	 */
 	public getSupportedModels(): string[] {
 		return [
@@ -258,27 +258,27 @@ export class EmbeddingManager {
 	}
 
 	/**
-	 * 获取模型信息。
+	 * Get model information.
 	 */
 	public getModelInfo(modelId: string): { dims: number; maxTokens: number; description: string } | null {
 		const modelInfoMap: Record<string, { dims: number; maxTokens: number; description: string }> = {
-			'Xenova/all-MiniLM-L6-v2': { dims: 384, maxTokens: 512, description: 'All-MiniLM-L6-v2 (推荐，轻量级)' },
+			'Xenova/all-MiniLM-L6-v2': { dims: 384, maxTokens: 512, description: 'All-MiniLM-L6-v2 (recommended, lightweight)' },
 			'Xenova/bge-small-en-v1.5': { dims: 384, maxTokens: 512, description: 'BGE-small-en-v1.5' },
-			'Xenova/bge-base-en-v1.5': { dims: 768, maxTokens: 512, description: 'BGE-base-en-v1.5 (更高质量)' },
-			'Xenova/jina-embeddings-v2-base-zh': { dims: 768, maxTokens: 8192, description: 'Jina-v2-base-zh (中英双语)' },
+			'Xenova/bge-base-en-v1.5': { dims: 768, maxTokens: 512, description: 'BGE-base-en-v1.5 (higher quality)' },
+			'Xenova/jina-embeddings-v2-base-zh': { dims: 768, maxTokens: 8192, description: 'Jina-v2-base-zh (Chinese-English bilingual)' },
 			'Xenova/jina-embeddings-v2-small-en': { dims: 512, maxTokens: 8192, description: 'Jina-v2-small-en' },
-			'Xenova/multilingual-e5-small': { dims: 384, maxTokens: 512, description: 'E5-small (多语言)' },
-			'Xenova/multilingual-e5-base': { dims: 768, maxTokens: 512, description: 'E5-base (多语言，更高质量)' },
+			'Xenova/multilingual-e5-small': { dims: 384, maxTokens: 512, description: 'E5-small (multilingual)' },
+			'Xenova/multilingual-e5-base': { dims: 768, maxTokens: 512, description: 'E5-base (multilingual, higher quality)' },
 			'Xenova/gte-small': { dims: 384, maxTokens: 512, description: 'GTE-small' },
 			'Xenova/e5-small-v2': { dims: 384, maxTokens: 512, description: 'E5-small-v2' },
-			'Xenova/e5-base-v2': { dims: 768, maxTokens: 512, description: 'E5-base-v2 (更高质量)' }
+			'Xenova/e5-base-v2': { dims: 768, maxTokens: 512, description: 'E5-base-v2 (higher quality)' }
 		};
 
 		return modelInfoMap[modelId] || null;
 	}
 
 	/**
-	 * 终止 Worker，释放资源。
+	 * Terminate Worker and release resources.
 	 */
 	public terminate() {
 		this.worker.terminate();

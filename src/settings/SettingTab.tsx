@@ -342,39 +342,39 @@ export class InfioSettingTab extends PluginSettingTab {
 	}
 
 	renderRAGSection(containerEl: HTMLElement): void {
-		// 创建一个折叠区域的容器
+		// Create a collapsible section container
 		const ragContainer = containerEl.createDiv("rag-settings-container");
 
-		// 创建标题元素，添加折叠控件
+		// Create header element with collapse controls
 		const headerEl = ragContainer.createEl("div", { cls: "infio-collapsible-heading" });
 
-		// 添加展开/折叠指示器
+		// Add expand/collapse indicator
 		const toggleIcon = headerEl.createEl("span", { cls: "infio-toggle-icon" });
-		toggleIcon.textContent = "▶"; // 默认为折叠状态，使用右箭头
+		toggleIcon.textContent = "▶"; // Default collapsed state, use right arrow
 
-		// 添加标题文本
+		// Add title text
 		const titleEl = headerEl.createEl("h3", { text: t('settings.RAG.title') });
 
-		// 创建内容容器
+		// Create content container
 		const contentContainer = ragContainer.createEl("div", { cls: "infio-collapsible-content" });
 
-		// 默认设置为隐藏状态
+		// Default to hidden state
 		contentContainer.style.display = "none";
 
-		// 添加点击事件处理
+		// Add click event handler
 		headerEl.addEventListener("click", () => {
 			if (contentContainer.style.display === "none") {
 				contentContainer.style.display = "block";
-				toggleIcon.textContent = "▼"; // 展开状态使用下箭头
+				toggleIcon.textContent = "▼"; // Expanded state uses down arrow
 				toggleIcon.style.transform = "rotate(0deg)";
 			} else {
 				contentContainer.style.display = "none";
-				toggleIcon.textContent = "▶"; // 折叠状态使用右箭头
+				toggleIcon.textContent = "▶"; // Collapsed state uses right arrow
 				toggleIcon.style.transform = "rotate(0deg)";
 			}
 		});
 
-		// 添加样式
+		// Add styling
 		headerEl.style.cursor = "pointer";
 		headerEl.style.display = "flex";
 		headerEl.style.alignItems = "center";
@@ -389,7 +389,7 @@ export class InfioSettingTab extends PluginSettingTab {
 		titleEl.style.fontSize = "16px";
 		titleEl.style.fontWeight = "600";
 
-		// 以下是原有的设置内容，移动到内容容器中
+		// Following is the original settings content, moved to content container
 		new Setting(contentContainer)
 			.setName(t('settings.RAG.filesystem'))
 			.setDesc(t('settings.RAG.filesystemDescription'))
@@ -598,42 +598,42 @@ export class InfioSettingTab extends PluginSettingTab {
 	}
 
 	renderAutoCompleteSection(containerEl: HTMLElement): void {
-		// 创建一个折叠区域的容器
+		// Create a collapsible section container
 		const autoCompleteContainer = containerEl.createDiv("auto-complete-settings-container");
 
-		// 创建标题元素，添加折叠控件
+		// Create header element with collapse controls
 		const headerEl = autoCompleteContainer.createEl("div", { cls: "infio-collapsible-heading" });
 
-		// 添加展开/折叠指示器
+		// Add expand/collapse indicator
 		const toggleIcon = headerEl.createEl("span", { cls: "infio-toggle-icon" });
-		toggleIcon.textContent = "▶"; // 默认为折叠状态，使用右箭头
+		toggleIcon.textContent = "▶"; // Default collapsed state, use right arrow
 
-		// 添加标题文本
+		// Add title text
 		const titleEl = headerEl.createEl("h3", { text: t('settings.AutoComplete.title') });
 
-		// 创建内容容器
+		// Create content container
 		const contentContainer = autoCompleteContainer.createEl("div", { cls: "infio-collapsible-content" });
 
-		// 保存容器引用
+		// Save container reference
 		this.autoCompleteContainer = contentContainer;
 
-		// 默认设置为隐藏状态
+		// Default to hidden state
 		contentContainer.style.display = "none";
 
-		// 添加点击事件处理
+		// Add click event handler
 		headerEl.addEventListener("click", () => {
 			if (contentContainer.style.display === "none") {
 				contentContainer.style.display = "block";
-				toggleIcon.textContent = "▼"; // 展开状态使用下箭头
+				toggleIcon.textContent = "▼"; // Expanded state uses down arrow
 				toggleIcon.style.transform = "rotate(0deg)";
 			} else {
 				contentContainer.style.display = "none";
-				toggleIcon.textContent = "▶"; // 折叠状态使用右箭头
+				toggleIcon.textContent = "▶"; // Collapsed state uses right arrow
 				toggleIcon.style.transform = "rotate(0deg)";
 			}
 		});
 
-		// 添加样式
+		// Add styling
 		headerEl.style.cursor = "pointer";
 		headerEl.style.display = "flex";
 		headerEl.style.alignItems = "center";
@@ -648,7 +648,7 @@ export class InfioSettingTab extends PluginSettingTab {
 		titleEl.style.fontSize = "16px";
 		titleEl.style.fontWeight = "600";
 
-		// 在内容容器中渲染AutoComplete设置
+		// Render AutoComplete settings in content container
 		this.renderAutoCompleteContent(contentContainer);
 	}
 
@@ -659,7 +659,7 @@ export class InfioSettingTab extends PluginSettingTab {
 				...update
 			});
 
-			// 只重新渲染 AutoComplete 部分
+			// Only re-render AutoComplete section
 			if (this.autoCompleteContainer) {
 				this.autoCompleteContainer.empty();
 				this.renderAutoCompleteContent(this.autoCompleteContainer);

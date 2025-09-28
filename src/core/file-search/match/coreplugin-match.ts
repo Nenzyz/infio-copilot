@@ -57,7 +57,7 @@ export async function matchSearchUsingCorePlugin(
             }
 
             let content = await vault.cachedRead(file as TFile);
-            // 清理null字节，防止PostgreSQL UTF8编码错误
+            // Clean null bytes to prevent PostgreSQL UTF8 encoding errors
             content = content.replace(/\0/g, '');
             const lines = content.split('\n');
 

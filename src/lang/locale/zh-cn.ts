@@ -225,6 +225,8 @@ export default {
 		autocompleteEnable: '启用自动完成',
 		autocompleteDisable: '禁用自动完成',
 		inlineEditCommand: '文本内编辑',
+		testDataview: '测试 Dataview（简单查询）',
+		testLocalEmbedding: '测试本地嵌入模型',
 	},
 	notifications: {
 		rebuildingIndex: '正在重建 Vault 索引...',
@@ -237,6 +239,13 @@ export default {
 		selectTextFirst: '请先选择一些文本',
 		migrationFailed: '迁移到 JSON 存储失败。请检查控制台以获取详细信息。',
 		reloadingInfio: '因迁移而重新加载 "infio"',
+		dataviewManagerNotInitialized: 'DataviewManager 未初始化',
+		dataviewNotInstalled: 'Dataview 插件未安装或未启用',
+		dataviewQuerySuccess: 'Dataview 查询成功！结果已在控制台输出',
+		queryFailed: '查询失败: {error}',
+		queryError: '执行测试查询时发生错误',
+		embeddingManagerNotInitialized: 'EmbeddingManager 未初始化',
+		embeddingTestFailed: '嵌入测试失败: {error}',
 	},
 	applyView: {
 		applyingFile: '正在应用: {{file}}',
@@ -744,5 +753,9 @@ export default {
 			saveFailed: "保存失败，请重试",
 			defaultName: "工作区 {date}"
 		}
+	},
+	embeddingTest: {
+		modalTitle: "本地嵌入测试结果",
+		resultMessage: "嵌入测试完成！\n文本: \"{text}\"\nToken 数量: {tokens}\n向量维度: {dimension}\n向量前4个值: [{values}...]"
 	}
 };
