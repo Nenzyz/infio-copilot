@@ -87,7 +87,7 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 	};
 
 	// 一键配置模型
-	const handleOneClickConfig = () => {
+	const handleOneClickConfig = async () => {
 		const settedProviders = getSettedProviders();
 
 		if (settedProviders.length === 0) {
@@ -108,7 +108,9 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 		let hasUpdates = false;
 
 		if (selectedProvider) {
-			const defaultModels = GetDefaultModelId(selectedProvider);
+			// Import the dynamic function
+			const { GetDefaultModelIdDynamic } = await import('../../utils/api');
+			const defaultModels = await GetDefaultModelIdDynamic(selectedProvider, settings);
 
 			// 设置chat、insight和autocomplete模型
 			if (defaultModels.chat) {
@@ -133,7 +135,8 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 
 		// todo: this is a temporary fix for the embedding provider, we should remove this after the embedding provider is implemented
 		if (embeddingProvider) {
-			const embeddingDefaultModels = GetDefaultModelId(embeddingProvider);
+			const { GetDefaultModelIdDynamic } = await import('../../utils/api');
+			const embeddingDefaultModels = await GetDefaultModelIdDynamic(embeddingProvider, settings);
 
 			// 设置embedding模型
 			if (embeddingDefaultModels.embedding) {
@@ -194,15 +197,17 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 		});
 	};
 
-	const testApiConnection = async (provider: ApiProvider, modelId?: string) => {
-		console.debug(`Testing connection for ${provider}...`);
-
+	const fetchProviderModels = async (provider: ApiProvider) => {
 		try {
-			// 动态导入LLMManager以避免循环依赖
-			const { default: LLMManager } = await import('../../core/llm/manager');
-			const { GetDefaultModelId } = await import('../../utils/api');
+			// Import the model fetching utilities
+			const { GetProviderModels, clearAllModelCaches } = await import('../../utils/api');
 
-			// 对比 infio 使用独特的测试逻辑
+			// Special handling for providers that don't support dynamic model fetching
+			if (provider === ApiProvider.Ollama || provider === ApiProvider.OpenAICompatible || provider === ApiProvider.LocalProvider) {
+				throw new Error(t("settings.ModelProvider.testConnection.notSupported", { provider }));
+			}
+
+			// For Infio, check if user has proper plan
 			if (provider === ApiProvider.Infio) {
 				const apiKey = settings?.infioProvider?.apiKey?.trim();
 				if (!apiKey) {
@@ -211,78 +216,31 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 
 				const userPlan = await fetchUserPlan(apiKey);
 				const plan = String(userPlan?.plan || '').toLowerCase();
-				if (plan === 'general') {
-					console.debug('✅ Infio plan is general, skipping further connection tests.');
-					return; // 直接返回成功
+				if (plan !== 'general' && plan !== 'pro') {
+					throw new Error('Invalid Infio plan for model fetching');
 				}
 			}
 
+			// Clear model cache to fetch fresh models
+			clearAllModelCaches();
 
-			// 对于Ollama和OpenAICompatible，不支持测试API连接
-			if (provider === ApiProvider.Ollama || provider === ApiProvider.OpenAICompatible) {
-				throw new Error(t("settings.ModelProvider.testConnection.notSupported", { provider }));
+			// Fetch models from the provider
+			const models = await GetProviderModels(provider, settings);
+			const modelCount = Object.keys(models).length;
+
+			if (modelCount === 0) {
+				throw new Error(t("settings.ModelProvider.testConnection.noModelsFound"));
 			}
 
-			// 创建LLM管理器实例
-			const llmManager = new LLMManager(settings);
+			// Show success message with model count
+			const successMessage = t("settings.ModelProvider.testConnection.modelsFound", { count: modelCount });
+			alert(successMessage);
 
-			// 获取提供商的默认聊天模型
-			const defaultModels = GetDefaultModelId(provider);
-			const testModelId = modelId || defaultModels.chat;
-
-			// 对于没有默认模型的提供商，使用通用的测试模型
-			if (!testModelId) {
-				throw new Error(t("settings.ModelProvider.testConnection.noDefaultModel", { provider }));
-			}
-
-			// 构造测试模型对象
-			const testModel = {
-				provider: provider,
-				modelId: testModelId
-			};
-
-			// 构造简单的测试请求
-			const testRequest = {
-				messages: [
-					{
-						role: 'user' as const,
-						content: 'echo hi'
-					}
-				],
-				model: testModelId,
-				max_tokens: 10,
-				temperature: 0
-			};
-
-			// 设置超时选项
-			const abortController = new AbortController();
-			const timeoutId = setTimeout(() => abortController.abort(), 10000); // 10秒超时
-
-			try {
-				// 发起API调用测试
-				const response = await llmManager.generateResponse(
-					testModel,
-					testRequest,
-					{ signal: abortController.signal }
-				);
-
-				clearTimeout(timeoutId);
-
-				// 检查响应是否有效
-				if (response && response.choices && response.choices.length > 0) {
-					console.debug(`✅ ${provider} connection test successful:`, response.choices[0]?.message?.content);
-					// ApiKeyComponent expects no return value on success, just no thrown error
-					return;
-				} else {
-					throw new Error(t("settings.ModelProvider.testConnection.invalidResponse"));
-				}
-			} catch (apiError) {
-				clearTimeout(timeoutId);
-				throw apiError;
-			}
+			// Return success (no error thrown means success for ApiKeyComponent)
+			return;
 
 		} catch (error) {
-			console.error(`❌ ${provider} connection test failed:`, error);
+			console.error(`❌ ${provider} model fetching failed:`, error);
 
 			// 根据错误类型提供更具体的错误信息
 			let errorMessage = t("settings.ModelProvider.testConnection.connectionFailed");
@@ -329,7 +287,6 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 		modelId: string,
 		isCustom: boolean = false
 	) => {
-		console.debug(`updateChatModelId: ${provider} -> ${modelId}, isCustom: ${isCustom}`)
 		const providerSettingKey = getProviderSettingKey(provider);
 		const providerSettings = settings[providerSettingKey] || {};
 		const currentModels = providerSettings.models || [];
@@ -351,7 +308,6 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 	};
 
 	const updateApplyModelId = (provider: ApiProvider, modelId: string, isCustom: boolean = false) => {
-		console.debug(`updateApplyModelId: ${provider} -> ${modelId}, isCustom: ${isCustom}`)
 		const providerSettingKey = getProviderSettingKey(provider);
 		const providerSettings = settings[providerSettingKey] || {};
 		const currentModels = providerSettings.models || [];
@@ -373,7 +329,6 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 	};
 
 	const updateEmbeddingModelId = (provider: ApiProvider, modelId: string, isCustom: boolean = false) => {
-		console.debug(`updateEmbeddingModelId: ${provider} -> ${modelId}, isCustom: ${isCustom}`)
 		const providerSettingKey = getProviderSettingKey(provider);
 		const providerSettings = settings[providerSettingKey] || {};
 		const currentModels = providerSettings.models || [];
@@ -395,7 +350,6 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 	};
 
 	const updateInsightModelId = (provider: ApiProvider, modelId: string, isCustom: boolean = false) => {
-		console.debug(`updateInsightModelId: ${provider} -> ${modelId}, isCustom: ${isCustom}`)
 		const providerSettingKey = getProviderSettingKey(provider);
 		const providerSettings = settings[providerSettingKey] || {};
 		const currentModels = providerSettings.models || [];
@@ -476,7 +430,7 @@ const CustomProviderSettings: React.FC<CustomProviderSettingsProps> = ({ plugin,
 								description={generateApiKeyDescription(provider)}
 								value={providerSetting.apiKey || ''}
 								onChange={(value) => updateProviderApiKey(provider, value)}
-								onTest={() => testApiConnection(provider)}
+								onTest={() => fetchProviderModels(provider)}
 							/>
 						)}
 

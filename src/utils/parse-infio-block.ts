@@ -454,7 +454,8 @@ export function parseMsgBlocks(
 								content = operation.content || ''
 							}
 						} catch (error) {
-							console.error('Failed to parse operations JSON', error)
+							// Set content to error message instead of leaving it empty
+							content = `⚠️ Unable to parse AI response as JSON. The response may be incomplete or malformed.\n\nError: ${error.message}\n\nRaw content:\n${childNode.childNodes[0]?.value}`
 						}
 					}
 				}
@@ -493,7 +494,12 @@ export function parseMsgBlocks(
 							content = childNode.childNodes[0].value
 							operations = JSON5.parse(content as string)
 						} catch (error) {
-							console.error('Failed to parse operations JSON', error)
+							// Create a special error operation to show the user
+							operations = [{
+								search: '⚠️ JSON_PARSE_ERROR ⚠️',
+								replace: `Unable to parse AI response as JSON. The response may be incomplete or malformed.\n\nError: ${error.message}\n\nRaw content:\n${content}`,
+								error: true
+							}]
 						}
 					}
 				}
@@ -857,14 +863,22 @@ export function parseMsgBlocks(
 							if (operationsChildren.length > 0) {
 								const innerContentStartOffset = operationsChildren[0].sourceCodeLocation?.startOffset
 								const innerContentEndOffset = operationsChildren[operationsChildren.length - 1].sourceCodeLocation?.endOffset
-								
+
 								if (innerContentStartOffset && innerContentEndOffset) {
 									const jsonContent = input.slice(innerContentStartOffset, innerContentEndOffset).trim()
 									operations = JSON5.parse(jsonContent)
 								}
 							}
 						} catch (error) {
-							console.error('Failed to parse operations JSON', error)
+							// Create a special error operation to show the user
+							const errorContent = childNode.childNodes[0]?.sourceCodeLocation
+								? input.slice(childNode.childNodes[0].sourceCodeLocation.startOffset, childNode.childNodes[0].sourceCodeLocation.endOffset)
+								: 'Unable to extract content'
+							operations = [{
+								operation: 'error',
+								path: '⚠️ JSON_PARSE_ERROR.md',
+								content: `Unable to parse AI response as JSON. The response may be incomplete or malformed.\n\nError: ${error.message}\n\nRaw content:\n${errorContent}`
+							}]
 						}
 						break
 					}
@@ -877,7 +891,7 @@ export function parseMsgBlocks(
 						try {
 							const innerContentStartOffset = children[0].sourceCodeLocation?.startOffset
 							const innerContentEndOffset = children[children.length - 1].sourceCodeLocation?.endOffset
-							
+
 							if (innerContentStartOffset && innerContentEndOffset) {
 								const jsonContent = input.slice(innerContentStartOffset, innerContentEndOffset).trim()
 								// 检查内容是否以 [ 开头（纯 JSON 数组）
@@ -886,7 +900,15 @@ export function parseMsgBlocks(
 								}
 							}
 						} catch (error) {
-							console.error('Failed to parse manage_files JSON', error)
+							// Create a special error operation to show the user
+							const errorContent = innerContentEndOffset && innerContentStartOffset
+								? input.slice(innerContentStartOffset, innerContentEndOffset)
+								: 'Unable to extract content'
+							operations = [{
+								operation: 'error',
+								path: '⚠️ JSON_PARSE_ERROR.md',
+								content: `Unable to parse AI response as JSON. The response may be incomplete or malformed.\n\nError: ${error.message}\n\nRaw content:\n${errorContent}`
+							}]
 						}
 					}
 				}

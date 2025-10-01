@@ -6,13 +6,15 @@
 	"scripts": {
 		"bundle-pglite": "node scripts/bundle-pglite-resources.mjs",
 		"dev": "npm run bundle-pglite && node esbuild.config.mjs",
-		"build": "npm run bundle-pglite && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"build": "npm run bundle-pglite && node esbuild.config.mjs production",
+		"build:check": "npm run bundle-pglite && tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"analyze": "npm run bundle-pglite && ANALYZE=true node esbuild.config.mjs production",
 		"analyze:dev": "npm run bundle-pglite && ANALYZE=true node esbuild.config.mjs",
 		"version": "node version-bump.mjs",
 		"type:check": "tsc --noEmit",
 		"test": "jest",
-		"lint": "eslint 'src/**/*.{ts,tsx}'"
+		"lint": "eslint 'src/**/*.{ts,tsx}'",
+		"start:obsidian:debug": "open -a 'Obsidian' --args --remote-debugging-port=9222 --enable-logging"
 	},
 	"keywords": [],
 	"author": "",

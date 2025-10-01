@@ -47,7 +47,7 @@ export function LLMProvider({ children }: PropsWithChildren) {
 		return {
 			provider: settings.chatModelProvider,
 			modelId: settings.chatModelId,
-		}
+		};
 	}, [settings.chatModelProvider, settings.chatModelId])
 
 	useEffect(() => {

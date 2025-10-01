@@ -22,7 +22,8 @@ import {
 	GeminiModelId,
 	ModelInfo,
 	geminiDefaultModelId,
-	geminiModels
+	geminiModels,
+	getGeminiModelsCache
 } from "../../utils/api"
 import { parseImageDataUrl } from '../../utils/image'
 
@@ -51,14 +52,18 @@ export class GeminiProvider implements BaseLLMProvider {
 	}
 
 	getModel(modelId: string) {
+		// Try to use dynamically fetched models first, fall back to hardcoded
+		const cachedModels = getGeminiModelsCache();
+		const modelsToUse = cachedModels || geminiModels;
+
 		let id = modelId
-		let info: ModelInfo = geminiModels[id as GeminiModelId]
+		let info: ModelInfo = modelsToUse[id as GeminiModelId]
 
 		if (id?.endsWith(":thinking")) {
 			id = id.slice(0, -":thinking".length)
 
-			if (geminiModels[id as GeminiModelId]) {
-				info = geminiModels[id as GeminiModelId]
+			if (modelsToUse[id as GeminiModelId]) {
+				info = modelsToUse[id as GeminiModelId]
 
 				return {
 					id,
@@ -69,9 +74,9 @@ export class GeminiProvider implements BaseLLMProvider {
 			}
 		}
 
-		if (!info) {
-			id = geminiDefaultModelId
-			info = geminiModels[geminiDefaultModelId]
+		// If no model ID provided or not found, throw error with helpful message
+		if (!id || !info) {
+			throw new Error(`Model "${modelId}" not found. Please click "Get Models" button in settings to fetch available models.`)
 		}
 
 		return { id, info }
@@ -148,6 +153,7 @@ export class GeminiProvider implements BaseLLMProvider {
 				`Gemini API key is missing. Please set it in settings menu.`,
 			)
 		}
+
 		const { id: modelName, thinkingConfig, maxOutputTokens, info } = this.getModel(model.modelId)
 
 		const systemMessages = request.messages.filter((m) => m.role === 'system')

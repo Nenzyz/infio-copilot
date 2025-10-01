@@ -490,6 +490,82 @@ export const geminiModels = {
 	},
 } as const satisfies Record<string, ModelInfo>
 
+// Cache for Gemini models
+let geminiModelsCache: Record<string, ModelInfo> | null = null;
+
+// Clear Gemini models cache (useful when API key changes)
+export function clearGeminiModelsCache(): void {
+	geminiModelsCache = null;
+}
+
+// Get Gemini models cache
+export function getGeminiModelsCache(): Record<string, ModelInfo> | null {
+	return geminiModelsCache;
+}
+
+// Fetch Gemini models dynamically
+async function fetchGeminiModels(apiKey?: string): Promise<Record<string, ModelInfo>> {
+	if (geminiModelsCache) {
+		return geminiModelsCache;
+	}
+
+	try {
+		if (!apiKey) {
+			console.log('No API key provided for Gemini, using default models');
+			return geminiModels;
+		}
+
+		// Google Gemini API endpoint for listing models
+		// Note: This is a placeholder - you'll need the actual Gemini API endpoint
+		const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
+			method: 'GET',
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+
+		if (!response.ok) {
+			console.error('Failed to fetch Gemini models:', response.statusText);
+			return geminiModels;
+		}
+
+		const data = await response.json();
+		const models: Record<string, ModelInfo> = {};
+
+		if (data?.models) {
+			for (const model of data.models) {
+				// Only include generation models, not embedding models
+				if (model.name?.includes('gemini') && model.supportedGenerationMethods?.includes('generateContent')) {
+					const modelId = model.name.replace('models/', '');
+					models[modelId] = {
+						maxTokens: model.outputTokenLimit || 8192,
+						contextWindow: model.inputTokenLimit || 128000,
+						supportsImages: model.supportedGenerationMethods?.includes('generateContent') || false,
+						supportsPromptCache: false,
+						// Pricing info would need to be fetched separately or maintained
+						inputPrice: geminiModels[modelId]?.inputPrice || 0,
+						outputPrice: geminiModels[modelId]?.outputPrice || 0,
+						description: model.description || model.displayName || modelId
+					};
+				}
+			}
+		}
+
+		// If we got valid models, cache and return them
+		if (Object.keys(models).length > 0) {
+			geminiModelsCache = models;
+			return models;
+		}
+
+		// Fall back to hardcoded models if API didn't return valid data
+		return geminiModels;
+	} catch (error) {
+		console.error('Failed to fetch Gemini models:', error);
+		// Return hardcoded models as fallback
+		return geminiModels;
+	}
+}
+
 export const geminiEmbeddingModels = {
 	"text-embedding-004": {
 		dimensions: 768,
@@ -591,6 +667,100 @@ export const openAiNativeModels = {
 		outputPrice: 0.6,
 	},
 } as const satisfies Record<string, ModelInfo>
+
+// Cache for OpenAI models
+let openAiModelsCache: Record<string, ModelInfo> | null = null;
+
+// Clear OpenAI models cache (useful when API key changes)
+export function clearOpenAIModelsCache(): void {
+	openAiModelsCache = null;
+}
+
+// Clear all model caches
+export function clearAllModelCaches(): void {
+	geminiModelsCache = null;
+	openAiModelsCache = null;
+	infioModelsCache = null;
+	openRouterModelsCache = null;
+}
+
+// Fetch OpenAI models dynamically
+async function fetchOpenAIModels(apiKey?: string): Promise<Record<string, ModelInfo>> {
+	if (openAiModelsCache) {
+		return openAiModelsCache;
+	}
+
+	try {
+		if (!apiKey) {
+			console.log('No API key provided for OpenAI, using default models');
+			return openAiNativeModels;
+		}
+
+		// OpenAI API endpoint for listing models
+		const response = await fetch('https://api.openai.com/v1/models', {
+			method: 'GET',
+			headers: {
+				'Authorization': `Bearer ${apiKey}`,
+				'Content-Type': 'application/json'
+			}
+		});
+
+		if (!response.ok) {
+			console.error('Failed to fetch OpenAI models:', response.statusText);
+			return openAiNativeModels;
+		}
+
+		const data = await response.json();
+		const models: Record<string, ModelInfo> = {};
+
+		if (data?.data) {
+			for (const model of data.data) {
+				// Filter for GPT models and O1/O3 models (exclude embeddings, whisper, dall-e, etc.)
+				if (model.id && (
+					model.id.startsWith('gpt-') ||
+					model.id.startsWith('o1-') ||
+					model.id.startsWith('o3-') ||
+					model.id.includes('chatgpt')
+				)) {
+					// Use existing model info if available, otherwise create basic entry
+					const existingInfo = openAiNativeModels[model.id];
+					models[model.id] = existingInfo || {
+						maxTokens: 4096, // Default values
+						contextWindow: 128000,
+						supportsImages: model.id.includes('vision') || model.id.includes('4o'),
+						supportsPromptCache: true,
+						inputPrice: 0,
+						outputPrice: 0,
+						description: `OpenAI ${model.id} model`
+					};
+				}
+			}
+		}
+
+		// Merge with known models to ensure we have complete information
+		// This ensures pricing and detailed specs are preserved
+		const mergedModels = { ...openAiNativeModels };
+		for (const [modelId, modelInfo] of Object.entries(models)) {
+			if (!mergedModels[modelId]) {
+				mergedModels[modelId] = modelInfo;
+			}
+		}
+
+		// If we got valid models, cache and return them
+		if (Object.keys(mergedModels).length > 0) {
+			openAiModelsCache = mergedModels;
+			return mergedModels;
+		}
+
+		// Fall back to hardcoded models if API didn't return valid data
+		return openAiNativeModels;
+	} catch (error) {
+		console.error('Failed to fetch OpenAI models:', error);
+		// Return hardcoded models as fallback
+		return openAiNativeModels;
+	}
+}
+
 export const openAINativeEmbeddingModels = {
 	"text-embedding-3-small": {
 		dimensions: 1536,
@@ -1799,8 +1969,14 @@ export const GetProviderModels = async (provider: ApiProvider, settings?: InfioS
 		}
 		case ApiProvider.OpenRouter:
 			return await fetchOpenRouterModels()
-		case ApiProvider.OpenAI:
-			return openAiNativeModels
+		case ApiProvider.OpenAI: {
+			const apiKey = settings?.openAIProvider?.apiKey
+			return await fetchOpenAIModels(apiKey)
+		}
+		case ApiProvider.Google: {
+			const apiKey = settings?.googleProvider?.apiKey
+			return await fetchGeminiModels(apiKey)
+		}
 		case ApiProvider.AlibabaQwen:
 			return qwenModels
 		case ApiProvider.SiliconFlow:
@@ -1809,8 +1985,6 @@ export const GetProviderModels = async (provider: ApiProvider, settings?: InfioS
 			return anthropicModels
 		case ApiProvider.Deepseek:
 			return deepSeekModels
-		case ApiProvider.Google:
-			return geminiModels
 		case ApiProvider.Groq:
 			return groqModels
 		case ApiProvider.Grok:
@@ -1822,7 +1996,7 @@ export const GetProviderModels = async (provider: ApiProvider, settings?: InfioS
 		case ApiProvider.OpenAICompatible:
 			return {}
 		case ApiProvider.LocalProvider:
-			return {} 
+			return {}
 		default:
 			return {}
 	}
@@ -1837,8 +2011,14 @@ export const GetProviderModelsWithSettings = async (provider: ApiProvider, setti
 		}
 		case ApiProvider.OpenRouter:
 			return await fetchOpenRouterModels()
-		case ApiProvider.OpenAI:
-			return openAiNativeModels
+		case ApiProvider.OpenAI: {
+			const apiKey = settings?.openAIProvider?.apiKey
+			return await fetchOpenAIModels(apiKey)
+		}
+		case ApiProvider.Google: {
+			const apiKey = settings?.googleProvider?.apiKey
+			return await fetchGeminiModels(apiKey)
+		}
 		case ApiProvider.AlibabaQwen:
 			return qwenModels
 		case ApiProvider.SiliconFlow:
@@ -1847,8 +2027,6 @@ export const GetProviderModelsWithSettings = async (provider: ApiProvider, setti
 			return anthropicModels
 		case ApiProvider.Deepseek:
 			return deepSeekModels
-		case ApiProvider.Google:
-			return geminiModels
 		case ApiProvider.Groq:
 			return groqModels
 		case ApiProvider.Grok:
@@ -1904,6 +2082,59 @@ export const GetEmbeddingModelInfo = (provider: ApiProvider, modelId: string): E
 }
 
 // Get default model id for a provider
+// Get default model ID dynamically - fetches available models and selects appropriate ones
+export const GetDefaultModelIdDynamic = async (provider: ApiProvider, settings?: InfioSettings): Promise<{ chat: string, insight: string, autoComplete: string, embedding: string }> => {
+	try {
+		// Fetch available models for this provider
+		const models = await GetProviderModels(provider, settings);
+		const modelIds = Object.keys(models);
+
+		if (modelIds.length === 0) {
+			// If no models available, return empty strings
+			return { chat: '', insight: '', autoComplete: '', embedding: '' };
+		}
+
+		// Select appropriate models based on their names/characteristics
+		let chatModel = modelIds[0]; // Default to first model
+		let insightModel = modelIds[0];
+		let autoCompleteModel = modelIds[0];
+		let embeddingModel = '';
+
+		// Try to find better matches based on model names
+		for (const modelId of modelIds) {
+			const lowerModel = modelId.toLowerCase();
+
+			// For chat: prefer models with 'chat' or main models
+			if (lowerModel.includes('chat') || lowerModel.includes('pro')) {
+				chatModel = modelId;
+			}
+
+			// For insight/autocomplete: prefer faster/smaller models
+			if (lowerModel.includes('flash') || lowerModel.includes('instant') || lowerModel.includes('fast')) {
+				insightModel = modelId;
+				autoCompleteModel = modelId;
+			}
+
+			// For embedding: look for embedding models
+			if (lowerModel.includes('embed')) {
+				embeddingModel = modelId;
+			}
+		}
+
+		return {
+			chat: chatModel,
+			insight: insightModel,
+			autoComplete: autoCompleteModel,
+			embedding: embeddingModel
+		};
+	} catch (error) {
+		console.error(`Failed to get dynamic defaults for ${provider}:`, error);
+		// Fall back to legacy hardcoded defaults if dynamic fetch fails
+		return GetDefaultModelId(provider);
+	}
+};
+
+// Legacy function - kept for backward compatibility but should migrate to GetDefaultModelIdDynamic
 export const GetDefaultModelId = (provider: ApiProvider): { chat: string, insight: string, autoComplete: string, embedding: string } => {
 	switch (provider) {
 		case ApiProvider.Infio:

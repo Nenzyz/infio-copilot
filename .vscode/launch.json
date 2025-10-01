@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug Obsidian Plugin",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9222,
+            "urlFilter": "*",
+            "webRoot": "${workspaceFolder}",
+            "sourceMaps": true,
+            "sourceMapPathOverrides": {
+                "plugin:virtual-linker": "${workspaceFolder}/main.js"
+            }
+        }
+    ]
+}
