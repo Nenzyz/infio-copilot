@@ -4,6 +4,7 @@ import { BaseSerializedNode } from '@lexical/clipboard/clipboard'
 import { useMutation } from '@tanstack/react-query'
 import { Box, Lightbulb, CircleStop, History, NotebookPen, Plus, Search, Server, SquareSlash, Undo } from 'lucide-react'
 import { App, Notice, TFile, TFolder, WorkspaceLeaf } from 'obsidian'
+import { executeCanvasOperationsWithAPI } from '../../utils/canvas-operations'
 import {
 	forwardRef,
 	useCallback,
@@ -44,6 +45,7 @@ import { t } from '../../lang/helpers'
 import { PreviewView } from '../../PreviewView'
 import { ApplyStatus, ToolArgs } from '../../types/apply'
 import { ChatMessage, ChatUserMessage } from '../../types/chat'
+import { debugLogger } from '../../utils/debug-logger'
 import {
 	Mentionable,
 	MentionableBlock,
@@ -354,9 +356,17 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 					},
 				)
 
+				let fullResponse = '';
 				for await (const chunk of stream) {
 					const content = chunk.choices[0]?.delta?.content ?? ''
 					const reasoning_content = chunk.choices[0]?.delta?.reasoning_content ?? ''
+
+					// Log response chunk
+					if (content) {
+						debugLogger.logResponseChunk(chatModel.modelId, content);
+						fullResponse += content;
+					}
+
 					setChatMessages((prevChatHistory) =>
 						prevChatHistory.map((message) =>
 							message.role === 'assistant' && message.id === responseMessageId
@@ -376,6 +386,13 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 					if (!preventAutoScrollRef.current) {
 						handleScrollToBottom()
 					}
+				}
+
+				// Log complete response
+				if (fullResponse) {
+					debugLogger.logResponse(chatModel.modelId, fullResponse, {
+						messageId: responseMessageId
+					});
 				}
 			} catch (error) {
 				if (error.name === 'AbortError') {
@@ -421,6 +438,9 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 		{ applyMsgId: string, toolArgs: ToolArgs }
 	>({
 		mutationFn: async ({ applyMsgId, toolArgs }) => {
+			// Log tool execution start
+			const executionId = debugLogger.logToolExecutionStart(toolArgs.type, toolArgs);
+
 			try {
 				let opFile = app.workspace.getActiveFile()
 				if ('filepath' in toolArgs && toolArgs.filepath) {
@@ -478,6 +498,17 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 						})
 					})
 				} else if (toolArgs.type === 'insert_content') {
+					// Check if this is actually a canvas file
+					if (opFile?.extension === 'canvas') {
+						console.log('==========================================================');
+						console.log('❌ ERROR: AI used insert_content for a .canvas file!');
+						console.log('File:', opFile.path);
+						console.log('AI should use <manage_canvas> not <insert_content>');
+						console.log('Tool Args:', JSON.stringify(toolArgs, null, 2));
+						console.log('==========================================================');
+						throw new Error('Cannot use insert_content on canvas files. Please use manage_canvas tool instead.');
+					}
+
 					if (!opFile) {
 						throw new Error(`File not found: ${toolArgs.filepath}`)
 					}
@@ -1068,6 +1099,283 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 							}
 						};
 					}
+				} else if (toolArgs.type === 'manage_canvas') {
+					try {
+						const canvasPath = toolArgs.path;
+
+						// Use Canvas API approach
+						const result = await executeCanvasOperationsWithAPI(app, canvasPath, toolArgs.operations);
+
+						const formattedContent = `[manage_canvas] Canvas operations completed:\n${result.results.join('\n')}`;
+
+						return {
+							type: 'manage_canvas',
+							applyMsgId,
+							applyStatus: result.success ? ApplyStatus.Applied : ApplyStatus.Failed,
+							returnMsg: {
+								role: 'user',
+								applyStatus: ApplyStatus.Idle,
+								content: null,
+								promptContent: formattedContent,
+								id: uuidv4(),
+								mentionables: [],
+							}
+						};
+					} catch (error) {
+						console.error('Canvas operation failed:', error);
+						return {
+							type: 'manage_canvas',
+							applyMsgId,
+							applyStatus: ApplyStatus.Failed,
+							returnMsg: {
+								role: 'user',
+								applyStatus: ApplyStatus.Idle,
+								content: null,
+								promptContent: `[manage_canvas] Canvas operation failed: ${error instanceof Error ? error.message : String(error)}`,
+								id: uuidv4(),
+								mentionables: [],
+							}
+						};
+					}
+				} else if (false) {
+					// JSON FALLBACK (kept in case Canvas API fails)
+					try {
+						const results: string[] = [];
+						const canvasPath = toolArgs.path;
+
+						// Read existing canvas file or create new structure
+						let canvasData: { nodes: any[], edges: any[] } = { nodes: [], edges: [] };
+						const fileExists = await app.vault.adapter.exists(canvasPath);
+
+						if (fileExists) {
+							const content = await app.vault.adapter.read(canvasPath);
+							try {
+								canvasData = JSON.parse(content);
+								if (!canvasData.nodes) canvasData.nodes = [];
+								if (!canvasData.edges) canvasData.edges = [];
+							} catch (e) {
+								results.push(`⚠️ Failed to parse existing canvas file, creating new structure`);
+							}
+						}
+
+						// Track ID mappings: AI's placeholder IDs -> actual generated IDs
+						const idMap = new Map<string, string>();
+
+						// Process each operation
+						for (const operation of toolArgs.operations) {
+							switch (operation.action) {
+								case 'add_node': {
+									// Generate unique ID
+									const nodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+									const newNode: any = {
+										id: nodeId,
+										type: operation.node_type || 'text',
+										x: operation.x || 0,
+										y: operation.y || 0,
+										width: operation.width || 250,
+										height: operation.height || (operation.node_type === 'file' ? 400 : 60)
+									};
+
+									// Add type-specific properties
+									if (operation.color) newNode.color = operation.color;
+									if (operation.node_type === 'text' && operation.text) newNode.text = operation.text;
+									if (operation.node_type === 'file') {
+										if (operation.file) newNode.file = operation.file;
+										if (operation.subpath) newNode.subpath = operation.subpath;
+									}
+									if (operation.node_type === 'link' && operation.url) newNode.url = operation.url;
+									if (operation.node_type === 'group') {
+										if (operation.label) newNode.label = operation.label;
+										if (operation.background) newNode.background = operation.background;
+										if (operation.background_style) newNode.backgroundStyle = operation.background_style;
+									}
+
+									canvasData.nodes.push(newNode);
+
+									// Map AI's placeholder ID to actual ID if provided
+									if (operation.id) {
+										idMap.set(operation.id, nodeId);
+									}
+
+									results.push(`✅ Added ${operation.node_type} node: ${nodeId}${operation.id ? ` (placeholder: ${operation.id})` : ''}`);
+									break;
+								}
+
+								case 'update_node': {
+									if (!operation.id) {
+										results.push(`❌ update_node requires node id`);
+										break;
+									}
+									const nodeIndex = canvasData.nodes.findIndex(n => n.id === operation.id);
+									if (nodeIndex === -1) {
+										results.push(`❌ Node not found: ${operation.id}`);
+										break;
+									}
+
+									const node = canvasData.nodes[nodeIndex];
+									// Update properties
+									if (operation.x !== undefined) node.x = operation.x;
+									if (operation.y !== undefined) node.y = operation.y;
+									if (operation.width !== undefined) node.width = operation.width;
+									if (operation.height !== undefined) node.height = operation.height;
+									if (operation.color !== undefined) node.color = operation.color;
+									if (operation.text !== undefined) node.text = operation.text;
+									if (operation.file !== undefined) node.file = operation.file;
+									if (operation.subpath !== undefined) node.subpath = operation.subpath;
+									if (operation.url !== undefined) node.url = operation.url;
+									if (operation.label !== undefined) node.label = operation.label;
+									if (operation.background !== undefined) node.background = operation.background;
+									if (operation.background_style !== undefined) node.backgroundStyle = operation.background_style;
+
+									results.push(`✅ Updated node: ${operation.id}`);
+									break;
+								}
+
+								case 'remove_node': {
+									if (!operation.id) {
+										results.push(`❌ remove_node requires node id`);
+										break;
+									}
+									const nodeIndex = canvasData.nodes.findIndex(n => n.id === operation.id);
+									if (nodeIndex === -1) {
+										results.push(`❌ Node not found: ${operation.id}`);
+										break;
+									}
+
+									canvasData.nodes.splice(nodeIndex, 1);
+									// Remove connected edges
+									canvasData.edges = canvasData.edges.filter(e =>
+										e.fromNode !== operation.id && e.toNode !== operation.id
+									);
+									results.push(`✅ Removed node and connected edges: ${operation.id}`);
+									break;
+								}
+
+								case 'add_edge': {
+									// Resolve node IDs: use mapped IDs if available, otherwise use as-is
+									const fromNodeId = operation.from_node ? (idMap.get(operation.from_node) || operation.from_node) : '';
+									const toNodeId = operation.to_node ? (idMap.get(operation.to_node) || operation.to_node) : '';
+
+									if (!fromNodeId || !toNodeId) {
+										results.push(`❌ add_edge requires both from_node and to_node`);
+										break;
+									}
+
+									// Verify nodes exist
+									const fromExists = canvasData.nodes.some(n => n.id === fromNodeId);
+									const toExists = canvasData.nodes.some(n => n.id === toNodeId);
+
+									if (!fromExists) {
+										results.push(`❌ Source node not found: ${operation.from_node} (resolved to: ${fromNodeId})`);
+										break;
+									}
+									if (!toExists) {
+										results.push(`❌ Target node not found: ${operation.to_node} (resolved to: ${toNodeId})`);
+										break;
+									}
+
+									const edgeId = `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+									const newEdge: any = {
+										id: edgeId,
+										fromNode: fromNodeId,
+										toNode: toNodeId
+									};
+
+									if (operation.from_side) newEdge.fromSide = operation.from_side;
+									if (operation.to_side) newEdge.toSide = operation.to_side;
+									if (operation.from_end) newEdge.fromEnd = operation.from_end;
+									if (operation.to_end) newEdge.toEnd = operation.to_end;
+									if (operation.color) newEdge.color = operation.color;
+									if (operation.label) newEdge.label = operation.label;
+
+									canvasData.edges.push(newEdge);
+									results.push(`✅ Added edge: ${fromNodeId} → ${toNodeId}`);
+									break;
+								}
+
+								case 'update_edge': {
+									if (!operation.id) {
+										results.push(`❌ update_edge requires edge id`);
+										break;
+									}
+									const edgeIndex = canvasData.edges.findIndex(e => e.id === operation.id);
+									if (edgeIndex === -1) {
+										results.push(`❌ Edge not found: ${operation.id}`);
+										break;
+									}
+
+									const edge = canvasData.edges[edgeIndex];
+									if (operation.from_node !== undefined) edge.fromNode = operation.from_node;
+									if (operation.to_node !== undefined) edge.toNode = operation.to_node;
+									if (operation.from_side !== undefined) edge.fromSide = operation.from_side;
+									if (operation.to_side !== undefined) edge.toSide = operation.to_side;
+									if (operation.from_end !== undefined) edge.fromEnd = operation.from_end;
+									if (operation.to_end !== undefined) edge.toEnd = operation.to_end;
+									if (operation.color !== undefined) edge.color = operation.color;
+									if (operation.label !== undefined) edge.label = operation.label;
+
+									results.push(`✅ Updated edge: ${operation.id}`);
+									break;
+								}
+
+								case 'remove_edge': {
+									if (!operation.id) {
+										results.push(`❌ remove_edge requires edge id`);
+										break;
+									}
+									const edgeIndex = canvasData.edges.findIndex(e => e.id === operation.id);
+									if (edgeIndex === -1) {
+										results.push(`❌ Edge not found: ${operation.id}`);
+										break;
+									}
+
+									canvasData.edges.splice(edgeIndex, 1);
+									results.push(`✅ Removed edge: ${operation.id}`);
+									break;
+								}
+
+								default:
+									results.push(`❌ Unknown operation: ${operation.action}`);
+							}
+						}
+
+						// Write canvas file
+						const canvasContent = JSON.stringify(canvasData, null, '\t');
+						await app.vault.adapter.write(canvasPath, canvasContent);
+						results.push(`✅ Canvas file saved: ${canvasPath}`);
+
+						const formattedContent = `[manage_canvas] Canvas operations completed:\n${results.join('\n')}`;
+
+						return {
+							type: 'manage_canvas',
+							applyMsgId,
+							applyStatus: ApplyStatus.Applied,
+							returnMsg: {
+								role: 'user',
+								applyStatus: ApplyStatus.Idle,
+								content: null,
+								promptContent: formattedContent,
+								id: uuidv4(),
+								mentionables: [],
+							}
+						};
+					} catch (error) {
+						console.error('Canvas operation failed:', error);
+						return {
+							type: 'manage_canvas',
+							applyMsgId,
+							applyStatus: ApplyStatus.Failed,
+							returnMsg: {
+								role: 'user',
+								applyStatus: ApplyStatus.Idle,
+								content: null,
+								promptContent: `[manage_canvas] Canvas operation failed: ${error instanceof Error ? error.message : String(error)}`,
+								id: uuidv4(),
+								mentionables: [],
+							}
+						};
+					}
 				} else {
 					// 处理未知的工具类型
 					throw new Error(`Unsupported tool type: ${(toolArgs as any).type || 'unknown'}`);
@@ -1078,6 +1386,14 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 			}
 		},
 		onSuccess: (result) => {
+			// Log tool execution success
+			debugLogger.logToolExecutionEnd(
+				'', // executionId not available in callback scope
+				result.type,
+				true,
+				{ applyStatus: result.applyStatus, returnMsg: result.returnMsg }
+			);
+
 			if (result.applyMsgId || result.returnMsg) {
 				let newChatMessages = [...chatMessages];
 
@@ -1111,6 +1427,9 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 			}
 		},
 		onError: (error) => {
+			// Log tool execution error
+			debugLogger.logToolError('unknown', error);
+
 			if (
 				error instanceof LLMAPIKeyNotSetException ||
 				error instanceof LLMAPIKeyInvalidException ||

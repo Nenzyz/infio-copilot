@@ -11,6 +11,7 @@ import { getDataviewQueryDescription } from "./dataview-query"
 import { getFetchUrlsContentDescription } from "./fetch-url-content"
 import { getInsertContentDescription } from "./insert-content"
 import { getListFilesDescription } from "./list-files"
+import { getManageCanvasDescription } from "./manage-canvas"
 import { getManageFilesDescription } from "./manage-files"
 import { getReadFileDescription } from "./read-file"
 import { getSearchAndReplaceDescription } from "./search-and-replace"
@@ -38,6 +39,7 @@ const toolDescriptionMap: Record<string, (args: ToolArgs) => string | undefined>
 	access_mcp_resource: (args) => getAccessMcpResourceDescription(args),
 	search_and_replace: (args) => getSearchAndReplaceDescription(args),
 	manage_files: (args) => getManageFilesDescription(args),
+	manage_canvas: (args) => getManageCanvasDescription(args),
 	apply_diff: (args) =>
 		args.diffStrategy ? args.diffStrategy.getToolDescription({ cwd: args.cwd, toolOptions: args.toolOptions }) : "",
 	search_web: (args): string | undefined => getSearchWebDescription(args),
@@ -109,6 +111,6 @@ export function getToolDescriptionsForMode(
 export {
 	getAccessMcpResourceDescription, getReadFileDescription, getWriteToFileDescription, getSearchFilesDescription, getListFilesDescription,
 	getDataviewQueryDescription, getAskFollowupQuestionDescription, getAttemptCompletionDescription, getSwitchModeDescription, getInsertContentDescription,
-	getUseMcpToolDescription, getSearchAndReplaceDescription, getManageFilesDescription, getSearchWebDescription, getFetchUrlsContentDescription, getCallInsightsDescription as getCallInsightsDescription
+	getUseMcpToolDescription, getSearchAndReplaceDescription, getManageFilesDescription, getManageCanvasDescription, getSearchWebDescription, getFetchUrlsContentDescription, getCallInsightsDescription as getCallInsightsDescription
 }
 

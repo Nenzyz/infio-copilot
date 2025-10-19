@@ -131,4 +131,35 @@ export type ManageFilesToolArgs = {
 	finish?: boolean;
 }
 
-export type ToolArgs = ReadFileToolArgs | WriteToFileToolArgs | InsertContentToolArgs | SearchAndReplaceToolArgs | ListFilesToolArgs | MatchSearchFilesToolArgs | RegexSearchFilesToolArgs | SemanticSearchFilesToolArgs | SearchWebToolArgs | FetchUrlsContentToolArgs | SwitchModeToolArgs | ApplyDiffToolArgs | UseMcpToolArgs | DataviewQueryToolArgs | CallTransformationsToolArgs | ManageFilesToolArgs;
+export type ManageCanvasToolArgs = {
+	type: 'manage_canvas';
+	path: string;
+	operations: Array<{
+		action: 'add_node' | 'update_node' | 'remove_node' | 'add_edge' | 'update_edge' | 'remove_edge';
+		// Node properties
+		id?: string;
+		node_type?: 'text' | 'file' | 'link' | 'group';
+		x?: number;
+		y?: number;
+		width?: number;
+		height?: number;
+		color?: string;
+		text?: string;
+		file?: string;
+		subpath?: string;
+		url?: string;
+		label?: string;
+		background?: string;
+		background_style?: 'cover' | 'ratio' | 'repeat';
+		// Edge properties
+		from_node?: string;
+		to_node?: string;
+		from_side?: 'top' | 'right' | 'bottom' | 'left';
+		to_side?: 'top' | 'right' | 'bottom' | 'left';
+		from_end?: 'none' | 'arrow';
+		to_end?: 'none' | 'arrow';
+	}>;
+	finish?: boolean;
+}
+
+export type ToolArgs = ReadFileToolArgs | WriteToFileToolArgs | InsertContentToolArgs | SearchAndReplaceToolArgs | ListFilesToolArgs | MatchSearchFilesToolArgs | RegexSearchFilesToolArgs | SemanticSearchFilesToolArgs | SearchWebToolArgs | FetchUrlsContentToolArgs | SwitchModeToolArgs | ApplyDiffToolArgs | UseMcpToolArgs | DataviewQueryToolArgs | CallTransformationsToolArgs | ManageFilesToolArgs | ManageCanvasToolArgs;

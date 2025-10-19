@@ -19,6 +19,8 @@ import EventListener from "./event-listener"
 import JsonView from './JsonFileView'
 import { t } from './lang/helpers'
 import { PreviewView } from './PreviewView'
+import { CanvasOperationHandler } from './utils/canvas-operation-handler'
+import type { CanvasView } from './types/canvas-api'
 import CompletionKeyWatcher from "./render-plugin/completion-key-watcher"
 import DocumentChangesListener, {
 	DocumentChanges,
@@ -58,6 +60,7 @@ type DesktopAugmented = Plugin & {
 	inlineEdit: InlineEdit | null
 	diffStrategy?: DiffStrategy
 	dataviewManager: DataviewManager | null
+	canvasHandlers: Map<string, { handler: CanvasOperationHandler; canvas: any }> | null
 
 	// methods (attached below)
 	loadSettings: () => Promise<void>
@@ -327,6 +330,53 @@ export async function loadDesktop(base: Plugin) {
 		})
 	);
 
+	// Register canvas operation handlers for canvas views
+	// Track by both path and canvas instance to handle view recreation
+	plugin.canvasHandlers = new Map<string, { handler: CanvasOperationHandler; canvas: any }>();
+
+	plugin.registerEvent(
+		plugin.app.workspace.on("layout-change", () => {
+			if (!plugin.canvasHandlers) return;
+
+			// Find all canvas views and register handlers
+			const canvasLeaves = plugin.app.workspace.getLeavesOfType('canvas');
+
+			for (const leaf of canvasLeaves) {
+				const view = leaf.view as CanvasView;
+				if (view && view.file && view.canvas) {
+					const canvasPath = view.file.path;
+					const existingEntry = plugin.canvasHandlers.get(canvasPath);
+
+					// Register new handler if:
+					// 1. No handler exists for this path, OR
+					// 2. Canvas instance has changed (view was recreated)
+					if (!existingEntry || existingEntry.canvas !== view.canvas) {
+						// Unregister old handler if it exists
+						if (existingEntry) {
+							console.log('[Main] Canvas instance changed, unregistering old handler for:', canvasPath);
+							existingEntry.handler.unregister();
+						}
+
+						console.log('[Main] Registering canvas handler for:', canvasPath);
+						const handler = new CanvasOperationHandler(plugin.app, view.canvas, canvasPath);
+						handler.register();
+						plugin.canvasHandlers.set(canvasPath, { handler, canvas: view.canvas });
+					}
+				}
+			}
+
+			// Clean up handlers for closed canvases
+			const activePaths = new Set(canvasLeaves.map(l => (l.view as CanvasView).file?.path).filter(Boolean));
+			for (const [path, entry] of plugin.canvasHandlers.entries()) {
+				if (!activePaths.has(path)) {
+					console.log('[Main] Unregistering canvas handler for:', path);
+					entry.handler.unregister();
+					plugin.canvasHandlers.delete(path);
+				}
+			}
+		})
+	);
+
 	plugin.addCommand({
 		id: 'open-new-chat',
 		name: t('main.openNewChat'),
@@ -553,6 +603,18 @@ export async function loadDesktop(base: Plugin) {
 
 export function unloadDesktop(base: Plugin) {
 	const plugin = base as DesktopAugmented
+
+	// Cleanup canvas handlers
+	if (plugin.canvasHandlers) {
+		console.log('[Main] Unloading plugin - cleaning up', plugin.canvasHandlers.size, 'canvas handlers');
+		for (const [path, entry] of plugin.canvasHandlers.entries()) {
+			console.log('[Main] Unregistering canvas handler for:', path);
+			entry.handler.unregister();
+		}
+		plugin.canvasHandlers.clear();
+		plugin.canvasHandlers = null;
+	}
+
 	plugin.dbManagerInitPromise = null
 	plugin.ragEngineInitPromise = null
 	plugin.transEngineInitPromise = null

@@ -116,6 +116,11 @@ export type ParsedMsgBlock =
 		}>
 		finish: boolean
 	} | {
+		type: 'manage_canvas'
+		path: string
+		operations: Array<any>
+		finish: boolean
+	} | {
 		type: 'tool_result'
 		content: string
 	}
@@ -915,6 +920,61 @@ export function parseMsgBlocks(
 				
 				parsedResult.push({
 					type: 'manage_files',
+					operations,
+					finish: node.sourceCodeLocation.endTag !== undefined
+				})
+				lastEndOffset = endOffset
+			} else if (node.nodeName === 'manage_canvas') {
+				if (!node.sourceCodeLocation) {
+					throw new Error('sourceCodeLocation is undefined')
+				}
+				const startOffset = node.sourceCodeLocation.startOffset
+				const endOffset = node.sourceCodeLocation.endOffset
+				if (startOffset > lastEndOffset) {
+					parsedResult.push({
+						type: 'string',
+						content: input.slice(lastEndOffset, startOffset),
+					})
+				}
+
+				let path = ''
+				let operations: Array<any> = []
+
+				// Parse child nodes for path and operations
+				for (const childNode of node.childNodes) {
+					if (childNode.nodeName === 'path' && childNode.childNodes.length > 0) {
+						// @ts-expect-error - parse5 node value type
+						path = childNode.childNodes[0].value
+					} else if (childNode.nodeName === 'operations' && childNode.childNodes.length > 0) {
+						try {
+							// Get operations content
+							const operationsChildren = childNode.childNodes
+							if (operationsChildren.length > 0) {
+								const innerContentStartOffset = operationsChildren[0].sourceCodeLocation?.startOffset
+								const innerContentEndOffset = operationsChildren[operationsChildren.length - 1].sourceCodeLocation?.endOffset
+
+								if (innerContentStartOffset && innerContentEndOffset) {
+									const jsonContent = input.slice(innerContentStartOffset, innerContentEndOffset).trim()
+									operations = JSON5.parse(jsonContent)
+								}
+							}
+						} catch (error) {
+							// Create error operation
+							const errorContent = childNode.childNodes[0]?.sourceCodeLocation
+								? input.slice(childNode.childNodes[0].sourceCodeLocation.startOffset, childNode.childNodes[0].sourceCodeLocation.endOffset)
+								: 'Unable to extract content'
+							operations = [{
+								action: 'error',
+								error_message: `Unable to parse canvas operations as JSON. Error: ${error.message}\n\nRaw content:\n${errorContent}`
+							}]
+						}
+						break
+					}
+				}
+
+				parsedResult.push({
+					type: 'manage_canvas',
+					path,
 					operations,
 					finish: node.sourceCodeLocation.endTag !== undefined
 				})

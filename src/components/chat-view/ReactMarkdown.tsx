@@ -5,12 +5,14 @@ import {
 	ParsedMsgBlock,
 	parseMsgBlocks,
 } from '../../utils/parse-infio-block'
+import { debugLogger } from '../../utils/debug-logger'
 
 import MarkdownApplyDiffBlock from './Markdown/MarkdownApplyDiffBlock'
 import MarkdownDataviewQueryBlock from './Markdown/MarkdownDataviewQueryBlock'
 import MarkdownEditFileBlock from './Markdown/MarkdownEditFileBlock'
 import MarkdownFetchUrlsContentBlock from './Markdown/MarkdownFetchUrlsContentBlock'
 import MarkdownListFilesBlock from './Markdown/MarkdownListFilesBlock'
+import MarkdownManageCanvasBlock from './Markdown/MarkdownManageCanvasBlock'
 import MarkdownManageFilesBlock from './Markdown/MarkdownManageFilesBlock'
 import MarkdownMatchSearchFilesBlock from './Markdown/MarkdownMatchSearchFilesBlock'
 import MarkdownReadFileBlock from './Markdown/MarkdownReadFileBlock'
@@ -37,7 +39,20 @@ function ReactMarkdown({
 }) {
 
 	const blocks: ParsedMsgBlock[] = useMemo(
-		() => parseMsgBlocks(children),
+		() => {
+			const parsed = parseMsgBlocks(children);
+
+			// Log parsed tools (exclude 'string', 'think', 'thinking' blocks)
+			const toolBlocks = parsed.filter(b =>
+				b.type !== 'string' && b.type !== 'think' && b.type !== 'thinking'
+			);
+
+			if (toolBlocks.length > 0) {
+				debugLogger.logToolsParsed(toolBlocks, children);
+			}
+
+			return parsed;
+		},
 		[children],
 	)
 
@@ -228,6 +243,15 @@ function ReactMarkdown({
 						key={"manage-files-" + index}
 						applyStatus={applyStatus}
 						onApply={onApply}
+						operations={block.operations}
+						finish={block.finish}
+					/>
+				) : block.type === 'manage_canvas' ? (
+					<MarkdownManageCanvasBlock
+						key={"manage-canvas-" + index}
+						applyStatus={applyStatus}
+						onApply={onApply}
+						path={block.path}
 						operations={block.operations}
 						finish={block.finish}
 					/>
