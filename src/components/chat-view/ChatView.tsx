@@ -1166,7 +1166,8 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 							switch (operation.action) {
 								case 'add_node': {
 									// Generate unique ID
-									const nodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+									// Use underscore separator to avoid conflict with Advanced Canvas portal IDs (which use dashes)
+									const nodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 									const newNode: any = {
 										id: nodeId,
@@ -1275,7 +1276,8 @@ const Chat = forwardRef<ChatRef, ChatProps>((props, ref) => {
 										break;
 									}
 
-									const edgeId = `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+									// Use underscore separator to avoid conflict with Advanced Canvas portal IDs (which use dashes)
+									const edgeId = `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 									const newEdge: any = {
 										id: edgeId,
 										fromNode: fromNodeId,

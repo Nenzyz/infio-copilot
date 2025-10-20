@@ -68,7 +68,7 @@ describe('CanvasOperations', () => {
 			if (result.ok) {
 				// Should generate actual ID, not use ref
 				expect(result.value.nodeId).not.toBe('my-ref');
-				expect(result.value.nodeId).toMatch(/^text-node-/);
+				expect(result.value.nodeId).toMatch(/^text_node_/);
 			}
 		});
 	});

@@ -77,6 +77,14 @@ export class CanvasOperations {
 	}
 
 	/**
+	 * Get the entire ref map for external ID resolution
+	 * Used by CanvasAdapter to resolve AI placeholder IDs to actual node IDs
+	 */
+	getRefMap(): ReadonlyMap<string, string> {
+		return this.refMap;
+	}
+
+	/**
 	 * Resolve a node reference to actual ID
 	 * Returns the input if it's already an actual ID (exists in graph)
 	 */
@@ -117,7 +125,7 @@ export class CanvasOperations {
 	createTextNode(params: CreateTextNodeParams): Result<NodeOperationResult> {
 		try {
 			// Generate actual ID
-			const id = this.graph.generateId('text-node');
+			const id = this.graph.generateId('text_node');
 			// Resolve refs in position before calculating
 			const resolvedPosition = this.resolveRelativePosition(params.position);
 			const position = this.graph.calculatePosition(resolvedPosition);
@@ -166,7 +174,7 @@ export class CanvasOperations {
 	createFileNode(params: CreateFileNodeParams): Result<NodeOperationResult> {
 		try {
 			// Generate actual ID
-			const id = this.graph.generateId('file-node');
+			const id = this.graph.generateId('file_node');
 			// Resolve refs in position before calculating
 			const resolvedPosition = this.resolveRelativePosition(params.position);
 			const position = this.graph.calculatePosition(resolvedPosition);
@@ -184,7 +192,8 @@ export class CanvasOperations {
 				width: size.width,
 				height: size.height,
 				...(params.subpath && { subpath: params.subpath }),
-				...(params.color && { color: params.color })
+				...(params.color && { color: params.color }),
+				...(params.portal !== undefined && { portal: params.portal })
 			};
 
 			this.graph.addNode(node);
@@ -216,7 +225,7 @@ export class CanvasOperations {
 	createLinkNode(params: CreateLinkNodeParams): Result<NodeOperationResult> {
 		try {
 			// Generate actual ID
-			const id = this.graph.generateId('link-node');
+			const id = this.graph.generateId('link_node');
 			// Resolve refs in position before calculating
 			const resolvedPosition = this.resolveRelativePosition(params.position);
 			const position = this.graph.calculatePosition(resolvedPosition);
@@ -265,7 +274,7 @@ export class CanvasOperations {
 	createGroupNode(params: CreateGroupNodeParams): Result<NodeOperationResult> {
 		try {
 			// Generate actual ID
-			const id = this.graph.generateId('group-node');
+			const id = this.graph.generateId('group_node');
 			// Resolve refs in position before calculating
 			const resolvedPosition = this.resolveRelativePosition(params.position);
 			const position = this.graph.calculatePosition(resolvedPosition);

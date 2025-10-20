@@ -76,6 +76,12 @@ Operation Types:
 
 IMPORTANT: Each operation handles ONE node or ONE edge. To add multiple nodes, create multiple separate "add_node" operations. DO NOT use "add_nodes" with a "nodes" array.
 
+PLACEHOLDER IDs: You can create nodes and edges in a SINGLE REQUEST using placeholder IDs!
+- Give each new node an "id" field with a simple name like "node1", "node2", "summary_node"
+- Reference these placeholder IDs in "from_node" and "to_node" of edges in the same request
+- The system automatically maps placeholders to actual generated IDs
+- Example: Create node with id="A", then edge with from_node="A", to_node="B" - works perfectly!
+
 1. ADD_NODE - Add a new node to the canvas
    Fields (use these EXACT field names):
    - action: "add_node" (REQUIRED - singular, not "add_nodes")
@@ -84,7 +90,7 @@ IMPORTANT: Each operation handles ONE node or ONE edge. To add multiple nodes, c
    - y: vertical position in pixels (integer) (REQUIRED - NOT "pos_y")
    - width: node width in pixels (integer, default: 250)
    - height: node height in pixels (integer, default: 60 for text/link, 400 for file)
-   - id: (optional) A temporary placeholder ID (e.g., "node1", "node2") that can be referenced in subsequent add_edge operations within the same request. The system will generate the actual unique ID. IMPORTANT: Use "id" NOT "node_id".
+   - id: (RECOMMENDED) A placeholder ID like "node1", "summary", "backend_api" for referencing in edges. System auto-generates actual ID. IMPORTANT: Use "id" NOT "node_id".
    - color: (optional) Color as hex "#FF0000" or preset "1"-"6"
 
    For text nodes:
@@ -93,6 +99,7 @@ IMPORTANT: Each operation handles ONE node or ONE edge. To add multiple nodes, c
    For file nodes:
    - file: (required) Path to file relative to vault root
    - subpath: (optional) Heading/block reference starting with #
+   - portal: (optional) Set to true for .canvas files to open as portal (Advanced Canvas plugin)
 
    For link nodes:
    - url: (required) URL to link to
@@ -117,12 +124,12 @@ IMPORTANT: Each operation handles ONE node or ONE edge. To add multiple nodes, c
 4. ADD_EDGE - Add a connection between two nodes
    Fields:
    - action: "add_edge" (REQUIRED - singular, not "add_edges")
-   - from_node: (required) ID of the source node. Can be either:
-     * A placeholder ID defined in a previous add_node operation in the same request (e.g., "node1")
-     * An actual node ID from the canvas file (e.g., "node-1733507200000-x7k9m3p2q")
-   - to_node: (required) ID of the target node. Can be either:
-     * A placeholder ID defined in a previous add_node operation in the same request (e.g., "node2")
-     * An actual node ID from the canvas file (e.g., "node-1733507200001-a5b8c9d2e")
+   - from_node: (required) Source node. Can use:
+     * RECOMMENDED: Placeholder ID from same request (e.g., "node1", "summary") - auto-resolved!
+     * Actual node ID from canvas file (e.g., "node_1733507200000_x7k9m3p2q")
+   - to_node: (required) Target node. Can use:
+     * RECOMMENDED: Placeholder ID from same request (e.g., "node2", "details") - auto-resolved!
+     * Actual node ID from canvas file (e.g., "node_1733507200001_a5b8c9d2e")
    - from_side: (optional) "top" | "right" | "bottom" | "left"
    - to_side: (optional) "top" | "right" | "bottom" | "left"
    - from_end: (optional) "none" | "arrow" (default: "none")
@@ -181,6 +188,12 @@ Usage:
 </manage_canvas>
 
 IMPORTANT: Notice above how ALL operations (2 nodes + 1 edge) are sent in a SINGLE manage_canvas call with all items in the operations array. This is the REQUIRED pattern.
+
+Also notice how placeholder IDs ("node1", "node2") are used:
+- Each add_node has "id": "simple_name"
+- The add_edge references these same names in "from_node" and "to_node"
+- System automatically resolves placeholders to actual generated IDs
+- Everything works in ONE request - no need for multiple calls!
 
 Example 1: Creating a new canvas with two connected nodes (ALL IN ONE CALL)
 <manage_canvas>
@@ -330,6 +343,8 @@ Notes:
 - Colors can be hex values ("#FF0000") or presets ("1" through "6" for red, orange, yellow, green, cyan, purple)
 - Group nodes should be positioned to contain their child nodes (use larger width/height and position them behind)
 - File nodes typically need larger height (400+) to display content properly
+- Portal nodes (Advanced Canvas): Set "portal": true on .canvas file nodes to embed their content inline
+- Portal nodes should have larger dimensions (600x400+) to show embedded canvas content
 - Position coordinates (x, y) can be negative for infinite canvas space
 - The canvas will automatically handle layout - you just need to specify reasonable positions`
 }

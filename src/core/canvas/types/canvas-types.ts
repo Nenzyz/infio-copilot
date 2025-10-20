@@ -95,6 +95,8 @@ export interface CreateFileNodeParams {
 	color?: CanvasColor;
 	/** Reference ID for use in edges - NOT the actual node ID */
 	ref?: string;
+	/** Advanced Canvas: Set to true to open this canvas file as a portal (embedding its content) */
+	portal?: boolean;
 }
 
 export interface CreateLinkNodeParams {

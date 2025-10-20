@@ -363,7 +363,8 @@ export class CanvasOperationHandler {
 						try {
 							// Create edge using Canvas API
 							const canvasData = this.canvas.getData();
-							const edgeId = `edge-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+							// Use underscore separator to avoid conflict with Advanced Canvas portal IDs (which use dashes)
+							const edgeId = `edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 							const newEdge: any = {
 								id: edgeId,

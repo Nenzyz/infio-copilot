@@ -446,6 +446,26 @@ export class CanvasAdapter {
 	}
 
 	/**
+	 * Resolve a node ID for edge connections
+	 * Follows the chain: placeholder → internal ID → Canvas ID
+	 */
+	private resolveNodeId(nodeId: string, nodeIdMap: Map<string, string>): string {
+		// Chain through all mappings until we find the final ID
+		let currentId = nodeId;
+		let resolved = nodeIdMap.get(currentId);
+		const visited = new Set<string>([currentId]);
+
+		// Keep resolving until we hit the end of the chain
+		while (resolved && resolved !== currentId && !visited.has(resolved)) {
+			visited.add(resolved);
+			currentId = resolved;
+			resolved = nodeIdMap.get(currentId);
+		}
+
+		return currentId;
+	}
+
+	/**
 	 * Apply CanvasOperations result to actual Canvas API
 	 * Uses incremental operation-by-operation approach
 	 */
@@ -456,7 +476,10 @@ export class CanvasAdapter {
 		const currentData = this.canvas.getData();
 		const newData = result.canvasData;
 
-		// Resolve edge node IDs to use actual Canvas node IDs
+		// Build comprehensive ID resolution map:
+		// 1. Existing nodes (keep their IDs)
+		// 2. RefMap from CanvasOperations (AI placeholder refs -> internal IDs)
+		// 3. New node ID generation
 		const nodeIdMap = new Map<string, string>();
 
 		// Map existing node IDs (they stay the same)
@@ -464,7 +487,14 @@ export class CanvasAdapter {
 			nodeIdMap.set(node.id, node.id);
 		}
 
-		// Generate new IDs for new nodes
+		// Import refMap from CanvasOperations (AI placeholders -> internal IDs)
+		// This allows edges to reference nodes by their AI-provided placeholder IDs
+		const refMap = this.operations.getRefMap();
+		for (const [ref, internalId] of refMap.entries()) {
+			nodeIdMap.set(ref, internalId);
+		}
+
+		// Generate new IDs for new nodes and update refMap
 		for (const node of newData.nodes) {
 			if (!nodeIdMap.has(node.id)) {
 				// Generate a Canvas-style ID
@@ -474,10 +504,11 @@ export class CanvasAdapter {
 			}
 		}
 
-		// Resolve edge references
+		// Resolve edge references - now supports AI placeholder IDs!
 		for (const edge of newData.edges) {
-			const resolvedFromId = nodeIdMap.get(edge.fromNode) || edge.fromNode;
-			const resolvedToId = nodeIdMap.get(edge.toNode) || edge.toNode;
+			// Resolve from multiple possible sources: refMap placeholders, internal IDs, or actual Canvas IDs
+			const resolvedFromId = this.resolveNodeId(edge.fromNode, nodeIdMap);
+			const resolvedToId = this.resolveNodeId(edge.toNode, nodeIdMap);
 
 			edge.fromNode = resolvedFromId;
 			edge.toNode = resolvedToId;

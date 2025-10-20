@@ -453,14 +453,14 @@ describe('CanvasGraph', () => {
 			const id2 = graph.generateId('node');
 
 			expect(id1).not.toBe(id2);
-			expect(id1).toMatch(/^node-\d+-[a-z0-9]+$/);
+			expect(id1).toMatch(/^node_\d+_[a-z0-9]+$/);
 		});
 
 		it('should support custom prefixes', () => {
 			const graph = new CanvasGraph(emptyCanvas);
 			const id = graph.generateId('custom');
 
-			expect(id).toMatch(/^custom-/);
+			expect(id).toMatch(/^custom_/);
 		});
 	});
 });
