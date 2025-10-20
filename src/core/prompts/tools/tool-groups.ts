@@ -19,6 +19,7 @@ export const TOOL_DISPLAY_NAMES = {
 	ask_followup_question: "ask questions",
 	attempt_completion: "complete tasks",
 	switch_mode: "switch modes",
+	manage_canvas: "manage canvas",
 } as const
 
 // Define available tool groups
@@ -37,6 +38,9 @@ export const TOOL_GROUPS: Record<string, ToolGroupConfig> = {
 	},
 	manage_files: {
 		tools: ["manage_files"],
+	},
+	canvas: {
+		tools: ["manage_canvas"],
 	},
 	mcp: {
 		tools: ["use_mcp_tool", "access_mcp_resource"],
@@ -74,6 +78,8 @@ export const GROUP_DISPLAY_NAMES: Record<ToolGroup, string> = {
 	edit: "Edit Files",
 	research: "Research",
 	insights: "insights",
+	manage_files: "Manage Files",
+	canvas: "Canvas",
 	mcp: "MCP Tools",
 	modes: "Modes",
 }

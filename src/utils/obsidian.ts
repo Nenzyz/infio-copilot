@@ -39,7 +39,9 @@ export async function readTFileContent(
 	file: TFile,
 	vault: Vault,
 ): Promise<string> {
-	if (file.extension != 'md') {
+	// Allow reading text-based files: .md, .canvas, .json, .txt, etc.
+	const textExtensions = ['md', 'canvas', 'json', 'txt', 'csv', 'xml', 'yml', 'yaml', 'js', 'ts', 'css', 'html'];
+	if (!textExtensions.includes(file.extension)) {
 		return "(Binary file, unable to display content)"
 	}
 	const content = await vault.cachedRead(file)
@@ -60,7 +62,9 @@ export async function readTFileContentPdf(
 		}
 		return "(PDF file, app context required for processing)"
 	}
-	if (file.extension != 'md') {
+	// Allow reading text-based files: .md, .canvas, .json, .txt, etc.
+	const textExtensions = ['md', 'canvas', 'json', 'txt', 'csv', 'xml', 'yml', 'yaml', 'js', 'ts', 'css', 'html'];
+	if (!textExtensions.includes(file.extension)) {
 		return "(Binary file, unable to display content)"
 	}
 	const content = await vault.cachedRead(file)

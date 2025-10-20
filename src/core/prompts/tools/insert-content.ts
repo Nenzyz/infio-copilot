@@ -3,6 +3,9 @@ import { ToolArgs } from "./types"
 export function getInsertContentDescription(args: ToolArgs): string {
 	return `## insert_content
 Description: Inserts content at specific line positions in a file. This is the primary tool for adding new content (paragraphs, sections, headings, citations, etc.) as it allows for precise insertions without overwriting existing content. The tool uses an efficient line-based insertion system that maintains document integrity and proper ordering of multiple insertions. Beware to use the proper formatting and indentation. This tool is the preferred way to add new content to documents.
+
+IMPORTANT: This tool CANNOT be used for canvas files (.canvas). For canvas files, use the manage_canvas tool instead.
+
 Parameters:
 - path: (required) The path of the file to insert content into (relative to the current working directory ${args.cwd.toPosix()})
 - operations: (required) A JSON array of insertion operations. Each operation is an object with:
