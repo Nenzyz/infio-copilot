@@ -1970,7 +1970,7 @@ export const GetProviderModels = async (provider: ApiProvider, settings?: InfioS
 		case ApiProvider.OpenRouter:
 			return await fetchOpenRouterModels()
 		case ApiProvider.OpenAI: {
-			const apiKey = settings?.openAIProvider?.apiKey
+			const apiKey = settings?.openaiProvider?.apiKey
 			return await fetchOpenAIModels(apiKey)
 		}
 		case ApiProvider.Google: {
@@ -2012,7 +2012,7 @@ export const GetProviderModelsWithSettings = async (provider: ApiProvider, setti
 		case ApiProvider.OpenRouter:
 			return await fetchOpenRouterModels()
 		case ApiProvider.OpenAI: {
-			const apiKey = settings?.openAIProvider?.apiKey
+			const apiKey = settings?.openaiProvider?.apiKey
 			return await fetchOpenAIModels(apiKey)
 		}
 		case ApiProvider.Google: {
