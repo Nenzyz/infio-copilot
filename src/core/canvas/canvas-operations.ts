@@ -11,13 +11,22 @@ import type {
 	CreateLinkNodeParams,
 	CreateGroupNodeParams,
 	UpdateNodeParams,
+	InsertTextParams,
+	SearchReplaceTextParams,
+	AppendTextParams,
+	PrependTextParams,
+	BuildGroupParams,
+	GroupNodeSpec,
+	GroupLayout,
 	CreateEdgeParams,
 	UpdateEdgeParams,
 	NodeOperationResult,
 	EdgeOperationResult,
 	BatchOperationResult,
 	Result,
-	RelativePosition
+	RelativePosition,
+	Position,
+	Size
 } from './types/canvas-types';
 import { CanvasGraph } from './canvas-graph';
 
@@ -420,6 +429,423 @@ export class CanvasOperations {
 		}
 	}
 
+	// ===== TEXT EDITING OPERATIONS =====
+
+	/**
+	 * Insert text at a specific line position
+	 */
+	insertText(params: InsertTextParams): Result<NodeOperationResult> {
+		try {
+			// Resolve ref to actual ID
+			const actualId = this.resolveNodeRef(params.id);
+			const node = this.graph.getNode(actualId);
+
+			if (!node) {
+				return {
+					ok: false,
+					error: new Error(`Node not found: ${params.id}`)
+				};
+			}
+
+			if (node.type !== 'text') {
+				return {
+					ok: false,
+					error: new Error(`Cannot insert text into ${node.type} node - only text nodes support text editing`)
+				};
+			}
+
+			const lines = node.text.split('\n');
+			const lineIndex = params.start_line - 1; // Convert to 0-based
+
+			// Insert content at the specified line
+			if (lineIndex < 0 || lineIndex > lines.length) {
+				return {
+					ok: false,
+					error: new Error(`Line ${params.start_line} is out of range (1-${lines.length + 1})`)
+				};
+			}
+
+			lines.splice(lineIndex, 0, params.content);
+			const newText = lines.join('\n');
+
+			const success = this.graph.updateNode(actualId, { text: newText } as Partial<AllCanvasNodeData>);
+
+			return {
+				ok: true,
+				value: {
+					nodeId: actualId,
+					operation: 'insert_text',
+					success
+				}
+			};
+		} catch (error) {
+			return {
+				ok: false,
+				error: error instanceof Error ? error : new Error(String(error))
+			};
+		}
+	}
+
+	/**
+	 * Search and replace text
+	 */
+	searchReplaceText(params: SearchReplaceTextParams): Result<NodeOperationResult> {
+		try {
+			// Resolve ref to actual ID
+			const actualId = this.resolveNodeRef(params.id);
+			const node = this.graph.getNode(actualId);
+
+			if (!node) {
+				return {
+					ok: false,
+					error: new Error(`Node not found: ${params.id}`)
+				};
+			}
+
+			if (node.type !== 'text') {
+				return {
+					ok: false,
+					error: new Error(`Cannot search/replace text in ${node.type} node - only text nodes support text editing`)
+				};
+			}
+
+			let text = node.text;
+
+			// Handle line range restrictions
+			if (params.start_line !== undefined || params.end_line !== undefined) {
+				const lines = text.split('\n');
+				const startIdx = (params.start_line || 1) - 1;
+				const endIdx = params.end_line ? params.end_line - 1 : lines.length - 1;
+
+				// Extract the target range
+				const targetLines = lines.slice(startIdx, endIdx + 1);
+				let targetText = targetLines.join('\n');
+
+				// Perform replacement on target range
+				targetText = this.performReplace(targetText, params);
+
+				// Reconstruct full text
+				const beforeLines = lines.slice(0, startIdx);
+				const afterLines = lines.slice(endIdx + 1);
+				text = [...beforeLines, targetText, ...afterLines].join('\n');
+			} else {
+				// Replace in entire text
+				text = this.performReplace(text, params);
+			}
+
+			const success = this.graph.updateNode(actualId, { text } as Partial<AllCanvasNodeData>);
+
+			return {
+				ok: true,
+				value: {
+					nodeId: actualId,
+					operation: 'search_replace_text',
+					success
+				}
+			};
+		} catch (error) {
+			return {
+				ok: false,
+				error: error instanceof Error ? error : new Error(String(error))
+			};
+		}
+	}
+
+	/**
+	 * Helper method to perform text replacement
+	 */
+	private performReplace(text: string, params: SearchReplaceTextParams): string {
+		if (params.use_regex) {
+			const flags = params.ignore_case ? 'gi' : 'g';
+			const regex = new RegExp(params.search, flags);
+			return text.replace(regex, params.replace);
+		} else {
+			// Simple string replacement (all occurrences)
+			const searchStr = params.ignore_case ? params.search.toLowerCase() : params.search;
+			let result = text;
+
+			if (params.ignore_case) {
+				// Case-insensitive string replacement
+				const regex = new RegExp(params.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+				result = text.replace(regex, params.replace);
+			} else {
+				// Case-sensitive replacement
+				result = text.split(params.search).join(params.replace);
+			}
+
+			return result;
+		}
+	}
+
+	/**
+	 * Append text to the end
+	 */
+	appendText(params: AppendTextParams): Result<NodeOperationResult> {
+		try {
+			// Resolve ref to actual ID
+			const actualId = this.resolveNodeRef(params.id);
+			const node = this.graph.getNode(actualId);
+
+			if (!node) {
+				return {
+					ok: false,
+					error: new Error(`Node not found: ${params.id}`)
+				};
+			}
+
+			if (node.type !== 'text') {
+				return {
+					ok: false,
+					error: new Error(`Cannot append text to ${node.type} node - only text nodes support text editing`)
+				};
+			}
+
+			const newText = node.text + params.content;
+			const success = this.graph.updateNode(actualId, { text: newText } as Partial<AllCanvasNodeData>);
+
+			return {
+				ok: true,
+				value: {
+					nodeId: actualId,
+					operation: 'append_text',
+					success
+				}
+			};
+		} catch (error) {
+			return {
+				ok: false,
+				error: error instanceof Error ? error : new Error(String(error))
+			};
+		}
+	}
+
+	/**
+	 * Prepend text to the beginning
+	 */
+	prependText(params: PrependTextParams): Result<NodeOperationResult> {
+		try {
+			// Resolve ref to actual ID
+			const actualId = this.resolveNodeRef(params.id);
+			const node = this.graph.getNode(actualId);
+
+			if (!node) {
+				return {
+					ok: false,
+					error: new Error(`Node not found: ${params.id}`)
+				};
+			}
+
+			if (node.type !== 'text') {
+				return {
+					ok: false,
+					error: new Error(`Cannot prepend text to ${node.type} node - only text nodes support text editing`)
+				};
+			}
+
+			const newText = params.content + node.text;
+			const success = this.graph.updateNode(actualId, { text: newText } as Partial<AllCanvasNodeData>);
+
+			return {
+				ok: true,
+				value: {
+					nodeId: actualId,
+					operation: 'prepend_text',
+					success
+				}
+			};
+		} catch (error) {
+			return {
+				ok: false,
+				error: error instanceof Error ? error : new Error(String(error))
+			};
+		}
+	}
+
+	/**
+	 * Build a group with multiple nodes inside using automatic layout
+	 */
+	buildGroup(params: BuildGroupParams): Result<BatchOperationResult> {
+		try {
+			const layout = params.layout || 'vertical';
+			const spacing = params.spacing ?? 20;
+			const padding = params.padding ?? 20;
+			const gridColumns = params.gridColumns ?? 2;
+
+			// Default sizes for different node types
+			const getDefaultSize = (spec: GroupNodeSpec): Size => {
+				const width = spec.width ?? 250;
+				const height = spec.height ?? (spec.type === 'file' ? 400 : spec.type === 'text' ? 150 : 60);
+				return { width, height };
+			};
+
+			// Calculate node sizes
+			const nodeSizes = params.nodes.map(spec => getDefaultSize(spec));
+
+			// Calculate positions based on layout strategy
+			const nodePositions: Position[] = [];
+			let groupWidth = 0;
+			let groupHeight = 0;
+
+			if (layout === 'vertical') {
+				let currentY = padding;
+				const maxWidth = Math.max(...nodeSizes.map(s => s.width));
+
+				for (const size of nodeSizes) {
+					nodePositions.push({ x: padding, y: currentY });
+					currentY += size.height + spacing;
+				}
+
+				groupWidth = maxWidth + (padding * 2);
+				groupHeight = currentY - spacing + padding;
+			} else if (layout === 'horizontal') {
+				let currentX = padding;
+				const maxHeight = Math.max(...nodeSizes.map(s => s.height));
+
+				for (const size of nodeSizes) {
+					nodePositions.push({ x: currentX, y: padding });
+					currentX += size.width + spacing;
+				}
+
+				groupWidth = currentX - spacing + padding;
+				groupHeight = maxHeight + (padding * 2);
+			} else if (layout === 'grid') {
+				let row = 0;
+				let col = 0;
+				const maxWidthPerCol: number[] = [];
+				const maxHeightPerRow: number[] = [];
+
+				// Calculate max dimensions per row/col
+				params.nodes.forEach((spec, i) => {
+					const size = nodeSizes[i];
+					const currentRow = Math.floor(i / gridColumns);
+					const currentCol = i % gridColumns;
+
+					if (!maxWidthPerCol[currentCol]) maxWidthPerCol[currentCol] = 0;
+					if (!maxHeightPerRow[currentRow]) maxHeightPerRow[currentRow] = 0;
+
+					maxWidthPerCol[currentCol] = Math.max(maxWidthPerCol[currentCol], size.width);
+					maxHeightPerRow[currentRow] = Math.max(maxHeightPerRow[currentRow], size.height);
+				});
+
+				// Position nodes
+				params.nodes.forEach((spec, i) => {
+					const currentRow = Math.floor(i / gridColumns);
+					const currentCol = i % gridColumns;
+
+					const x = padding + maxWidthPerCol.slice(0, currentCol).reduce((sum, w) => sum + w + spacing, 0);
+					const y = padding + maxHeightPerRow.slice(0, currentRow).reduce((sum, h) => sum + h + spacing, 0);
+
+					nodePositions.push({ x, y });
+				});
+
+				groupWidth = padding + maxWidthPerCol.reduce((sum, w) => sum + w, 0) + (spacing * (maxWidthPerCol.length - 1)) + padding;
+				groupHeight = padding + maxHeightPerRow.reduce((sum, h) => sum + h, 0) + (spacing * (maxHeightPerRow.length - 1)) + padding;
+			} else if (layout === 'manual') {
+				// Use provided positions or default to (0, 0)
+				params.nodes.forEach((spec, i) => {
+					nodePositions.push({
+						x: spec.x ?? (padding + i * 50),
+						y: spec.y ?? (padding + i * 50)
+					});
+				});
+
+				// Calculate bounding box
+				const allX = nodePositions.map((p, i) => [p.x, p.x + nodeSizes[i].width]).flat();
+				const allY = nodePositions.map((p, i) => [p.y, p.y + nodeSizes[i].height]).flat();
+				groupWidth = Math.max(...allX) + padding;
+				groupHeight = Math.max(...allY) + padding;
+			}
+
+			// Resolve group position
+			const groupPos = this.resolvePosition(params.position);
+
+			// Create the group node first
+			const groupResult = this.createGroupNode({
+				label: params.label,
+				background: params.background,
+				backgroundStyle: params.backgroundStyle,
+				position: { type: 'absolute', x: groupPos.x, y: groupPos.y },
+				size: { width: groupWidth, height: groupHeight },
+				color: params.color,
+				ref: params.ref
+			});
+
+			if (!groupResult.ok) {
+				return groupResult;
+			}
+
+			// Create child nodes with positions relative to group
+			const nodeResults: NodeOperationResult[] = [groupResult.value];
+
+			for (let i = 0; i < params.nodes.length; i++) {
+				const spec = params.nodes[i];
+				const pos = nodePositions[i];
+				const size = nodeSizes[i];
+
+				// Absolute position on canvas (group position + relative position)
+				const absoluteX = groupPos.x + pos.x;
+				const absoluteY = groupPos.y + pos.y;
+
+				let nodeResult: Result<NodeOperationResult>;
+
+				if (spec.type === 'text') {
+					nodeResult = this.createTextNode({
+						text: spec.text || '',
+						position: { type: 'absolute', x: absoluteX, y: absoluteY },
+						size,
+						color: spec.color,
+						ref: spec.ref
+					});
+				} else if (spec.type === 'file') {
+					nodeResult = this.createFileNode({
+						file: spec.file || '',
+						subpath: spec.subpath,
+						position: { type: 'absolute', x: absoluteX, y: absoluteY },
+						size,
+						color: spec.color,
+						ref: spec.ref,
+						portal: spec.portal
+					});
+				} else if (spec.type === 'link') {
+					nodeResult = this.createLinkNode({
+						url: spec.url || '',
+						position: { type: 'absolute', x: absoluteX, y: absoluteY },
+						size,
+						color: spec.color,
+						ref: spec.ref
+					});
+				} else {
+					continue;
+				}
+
+				if (nodeResult.ok) {
+					nodeResults.push(nodeResult.value);
+				} else {
+					nodeResults.push({
+						nodeId: spec.ref || 'unknown',
+						operation: 'create',
+						success: false,
+						error: nodeResult.error.message
+					});
+				}
+			}
+
+			return {
+				ok: true,
+				value: {
+					nodes: nodeResults,
+					edges: [],
+					canvasData: this.graph.getData()
+				}
+			};
+		} catch (error) {
+			return {
+				ok: false,
+				error: error instanceof Error ? error : new Error(String(error))
+			};
+		}
+	}
+
 	// ===== EDGE OPERATIONS =====
 
 	/**
@@ -571,6 +997,11 @@ export class CanvasOperations {
 		| { type: 'createGroupNode'; params: CreateGroupNodeParams }
 		| { type: 'updateNode'; params: UpdateNodeParams }
 		| { type: 'deleteNode'; nodeId: string }
+		| { type: 'insertText'; params: InsertTextParams }
+		| { type: 'searchReplaceText'; params: SearchReplaceTextParams }
+		| { type: 'appendText'; params: AppendTextParams }
+		| { type: 'prependText'; params: PrependTextParams }
+		| { type: 'buildGroup'; params: BuildGroupParams }
 		| { type: 'createEdge'; params: CreateEdgeParams }
 		| { type: 'updateEdge'; params: UpdateEdgeParams }
 		| { type: 'deleteEdge'; edgeId: string }
@@ -585,7 +1016,12 @@ export class CanvasOperations {
 			op.type === 'createLinkNode' ||
 			op.type === 'createGroupNode' ||
 			op.type === 'updateNode' ||
-			op.type === 'deleteNode'
+			op.type === 'deleteNode' ||
+			op.type === 'insertText' ||
+			op.type === 'searchReplaceText' ||
+			op.type === 'appendText' ||
+			op.type === 'prependText' ||
+			op.type === 'buildGroup'
 		);
 
 		const edgeOps = operations.filter(op =>
@@ -677,6 +1113,77 @@ export class CanvasOperations {
 						nodeResults.push({
 							nodeId: op.nodeId,
 							operation: 'delete',
+							success: false,
+							error: result.error.message
+						});
+					}
+					break;
+
+				case 'insertText':
+					result = this.insertText(op.params);
+					if (result.ok) {
+						nodeResults.push(result.value);
+					} else {
+						nodeResults.push({
+							nodeId: op.params.id,
+							operation: 'update',
+							success: false,
+							error: result.error.message
+						});
+					}
+					break;
+
+				case 'searchReplaceText':
+					result = this.searchReplaceText(op.params);
+					if (result.ok) {
+						nodeResults.push(result.value);
+					} else {
+						nodeResults.push({
+							nodeId: op.params.id,
+							operation: 'update',
+							success: false,
+							error: result.error.message
+						});
+					}
+					break;
+
+				case 'appendText':
+					result = this.appendText(op.params);
+					if (result.ok) {
+						nodeResults.push(result.value);
+					} else {
+						nodeResults.push({
+							nodeId: op.params.id,
+							operation: 'update',
+							success: false,
+							error: result.error.message
+						});
+					}
+					break;
+
+				case 'prependText':
+					result = this.prependText(op.params);
+					if (result.ok) {
+						nodeResults.push(result.value);
+					} else {
+						nodeResults.push({
+							nodeId: op.params.id,
+							operation: 'update',
+							success: false,
+							error: result.error.message
+						});
+					}
+					break;
+
+				case 'buildGroup':
+					result = this.buildGroup(op.params);
+					if (result.ok) {
+						// buildGroup returns BatchOperationResult, so merge the node results
+						nodeResults.push(...result.value.nodes);
+					} else {
+						nodeResults.push({
+							nodeId: op.params.ref || 'unknown',
+							operation: 'create',
 							success: false,
 							error: result.error.message
 						});

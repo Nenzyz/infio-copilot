@@ -144,6 +144,121 @@ export interface UpdateNodeParams {
 }
 
 /**
+ * Text editing parameters - Insert at line position
+ */
+export interface InsertTextParams {
+	/** Node ID or reference */
+	id: string;
+	/** Line number where content should be inserted (1-based) */
+	start_line: number;
+	/** Content to insert */
+	content: string;
+}
+
+/**
+ * Text editing parameters - Search and replace
+ */
+export interface SearchReplaceTextParams {
+	/** Node ID or reference */
+	id: string;
+	/** Text or pattern to search for */
+	search: string;
+	/** Replacement text */
+	replace: string;
+	/** Starting line number for restricted replacement (optional, 1-based) */
+	start_line?: number;
+	/** Ending line number for restricted replacement (optional, 1-based) */
+	end_line?: number;
+	/** Whether to treat search as regex pattern */
+	use_regex?: boolean;
+	/** Whether to ignore case when matching */
+	ignore_case?: boolean;
+}
+
+/**
+ * Text editing parameters - Append text
+ */
+export interface AppendTextParams {
+	/** Node ID or reference */
+	id: string;
+	/** Content to append to end */
+	content: string;
+}
+
+/**
+ * Text editing parameters - Prepend text
+ */
+export interface PrependTextParams {
+	/** Node ID or reference */
+	id: string;
+	/** Content to prepend to beginning */
+	content: string;
+}
+
+/**
+ * Layout strategy for building groups
+ */
+export type GroupLayout = 'vertical' | 'horizontal' | 'grid' | 'manual';
+
+/**
+ * Node specification for building groups
+ */
+export interface GroupNodeSpec {
+	/** Node type */
+	type: 'text' | 'file' | 'link';
+	/** Reference ID for this node (for edges) */
+	ref?: string;
+
+	// Content (type-specific)
+	text?: string;
+	file?: string;
+	subpath?: string;
+	url?: string;
+
+	// Optional overrides for auto-layout
+	width?: number;
+	height?: number;
+	color?: CanvasColor;
+
+	// For manual layout only
+	x?: number;
+	y?: number;
+
+	// Advanced Canvas portal support
+	portal?: boolean;
+}
+
+/**
+ * Build a group with multiple nodes inside
+ */
+export interface BuildGroupParams {
+	/** Group label */
+	label?: string;
+	/** Group background */
+	background?: string;
+	/** Group background style */
+	backgroundStyle?: 'cover' | 'ratio' | 'repeat';
+	/** Group position on canvas */
+	position: RelativePosition;
+	/** Group color */
+	color?: CanvasColor;
+	/** Reference ID for the group */
+	ref?: string;
+
+	/** Layout strategy for child nodes */
+	layout?: GroupLayout;
+	/** Spacing between nodes (default: 20) */
+	spacing?: number;
+	/** Padding inside group (default: 20) */
+	padding?: number;
+	/** Number of columns for grid layout (default: 2) */
+	gridColumns?: number;
+
+	/** Nodes to create inside the group */
+	nodes: GroupNodeSpec[];
+}
+
+/**
  * Edge creation parameters
  */
 export interface CreateEdgeParams {

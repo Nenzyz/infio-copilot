@@ -8,6 +8,12 @@ import type {
 	UpdateNodeParams,
 	CreateEdgeParams,
 	UpdateEdgeParams,
+	InsertTextParams,
+	SearchReplaceTextParams,
+	AppendTextParams,
+	PrependTextParams,
+	BuildGroupParams,
+	GroupNodeSpec,
 	RelativePosition,
 	BatchOperationResult
 } from './types/canvas-types';
@@ -17,7 +23,8 @@ import type {
  * Accepts more flexible formats and handles normalization
  */
 export interface AIOperation {
-	action: 'add_node' | 'update_node' | 'remove_node' | 'add_edge' | 'update_edge' | 'remove_edge';
+	action: 'add_node' | 'update_node' | 'remove_node' | 'add_edge' | 'update_edge' | 'remove_edge'
+		| 'insert_text' | 'search_replace_text' | 'append_text' | 'prepend_text' | 'build_group';
 
 	// Node fields (flexible names accepted)
 	ref?: string;           // Reference ID for use in edges
@@ -49,6 +56,22 @@ export interface AIOperation {
 	background?: string;
 	background_style?: 'cover' | 'ratio' | 'repeat';
 	color?: string;
+
+	// Text editing fields
+	start_line?: number;       // Line number for insert operations (1-based)
+	end_line?: number;         // End line for search/replace range (1-based)
+	search?: string;           // Search pattern for search_replace_text
+	replace?: string;          // Replacement text for search_replace_text
+	use_regex?: boolean;       // Use regex for search pattern
+	ignore_case?: boolean;     // Case-insensitive search
+
+	// Group builder fields
+	layout?: 'vertical' | 'horizontal' | 'grid' | 'manual';
+	spacing?: number;          // Spacing between nodes in group
+	padding?: number;          // Padding inside group
+	grid_columns?: number;     // Number of columns for grid layout
+	gridColumns?: number;      // Alternative camelCase
+	nodes?: any[];             // Child nodes for group building
 
 	// Edge fields (supports both camelCase and snake_case)
 	fromNode?: string;     // camelCase
@@ -189,6 +212,36 @@ export class CanvasAdapter {
 				return {
 					type: 'deleteEdge',
 					edgeId: normalized.id || ''
+				};
+
+			case 'insert_text':
+				return {
+					type: 'insertText',
+					params: this.transformInsertText(normalized)
+				};
+
+			case 'search_replace_text':
+				return {
+					type: 'searchReplaceText',
+					params: this.transformSearchReplaceText(normalized)
+				};
+
+			case 'append_text':
+				return {
+					type: 'appendText',
+					params: this.transformAppendText(normalized)
+				};
+
+			case 'prepend_text':
+				return {
+					type: 'prependText',
+					params: this.transformPrependText(normalized)
+				};
+
+			case 'build_group':
+				return {
+					type: 'buildGroup',
+					params: this.transformBuildGroup(normalized)
 				};
 
 			default:
@@ -426,6 +479,94 @@ export class CanvasAdapter {
 		if (op.label) params.label = op.label;
 
 		return params;
+	}
+
+	/**
+	 * Transform insert_text params
+	 */
+	private transformInsertText(op: any): InsertTextParams {
+		return {
+			id: op.id || op.ref || '',
+			start_line: op.start_line || 1,
+			content: op.text || op.content || ''
+		};
+	}
+
+	/**
+	 * Transform search_replace_text params
+	 */
+	private transformSearchReplaceText(op: any): SearchReplaceTextParams {
+		return {
+			id: op.id || op.ref || '',
+			search: op.search || '',
+			replace: op.replace || '',
+			...(op.start_line !== undefined && { start_line: op.start_line }),
+			...(op.end_line !== undefined && { end_line: op.end_line }),
+			...(op.use_regex !== undefined && { use_regex: op.use_regex }),
+			...(op.ignore_case !== undefined && { ignore_case: op.ignore_case })
+		};
+	}
+
+	/**
+	 * Transform append_text params
+	 */
+	private transformAppendText(op: any): AppendTextParams {
+		return {
+			id: op.id || op.ref || '',
+			content: op.text || op.content || ''
+		};
+	}
+
+	/**
+	 * Transform prepend_text params
+	 */
+	private transformPrependText(op: any): PrependTextParams {
+		return {
+			id: op.id || op.ref || '',
+			content: op.text || op.content || ''
+		};
+	}
+
+	/**
+	 * Transform build_group params
+	 */
+	private transformBuildGroup(op: any): BuildGroupParams {
+		// Transform position
+		const position = this.transformPosition(op);
+
+		// Transform child nodes
+		const nodes: GroupNodeSpec[] = (op.nodes || []).map((node: any) => {
+			const spec: GroupNodeSpec = {
+				type: node.type || node.node_type || 'text',
+				...(node.ref && { ref: node.ref }),
+				...(node.text && { text: node.text }),
+				...(node.content && { text: node.content }),
+				...(node.file && { file: node.file }),
+				...(node.subpath && { subpath: node.subpath }),
+				...(node.url && { url: node.url }),
+				...(node.width && { width: node.width }),
+				...(node.height && { height: node.height }),
+				...(node.color && { color: node.color }),
+				...(node.x !== undefined && { x: node.x }),
+				...(node.y !== undefined && { y: node.y }),
+				...(node.portal !== undefined && { portal: node.portal })
+			};
+			return spec;
+		});
+
+		return {
+			label: op.label,
+			background: op.background,
+			backgroundStyle: op.background_style || op.backgroundStyle,
+			position,
+			color: op.color,
+			ref: op.ref || op.id,
+			layout: op.layout,
+			spacing: op.spacing,
+			padding: op.padding,
+			gridColumns: op.gridColumns || op.grid_columns,
+			nodes
+		};
 	}
 
 	/**

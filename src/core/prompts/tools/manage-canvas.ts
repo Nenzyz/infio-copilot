@@ -121,7 +121,73 @@ PLACEHOLDER IDs: You can create nodes and edges in a SINGLE REQUEST using placeh
    - id: (required) ID of the node to remove
    Note: This will also remove any edges connected to this node
 
-4. ADD_EDGE - Add a connection between two nodes
+4. INSERT_TEXT - Insert content at a specific line in a text node
+   Fields:
+   - action: "insert_text"
+   - id: (required) Node ID or reference to the text node
+   - start_line: (required) Line number where content should be inserted (1-based, content will be inserted before this line)
+   - text: (required) Content to insert (use "content" or "text")
+   Example: Insert "New line" at line 3 will add it before the current line 3
+
+5. SEARCH_REPLACE_TEXT - Find and replace text in a text node
+   Fields:
+   - action: "search_replace_text"
+   - id: (required) Node ID or reference to the text node
+   - search: (required) Text or pattern to search for
+   - replace: (required) Replacement text
+   - start_line: (optional) Starting line number for restricted replacement (1-based)
+   - end_line: (optional) Ending line number for restricted replacement (1-based)
+   - use_regex: (optional) Whether to treat search as a regex pattern (default: false)
+   - ignore_case: (optional) Whether to ignore case when matching (default: false)
+
+6. APPEND_TEXT - Append content to the end of a text node
+   Fields:
+   - action: "append_text"
+   - id: (required) Node ID or reference to the text node
+   - text: (required) Content to append (use "content" or "text")
+
+7. PREPEND_TEXT - Prepend content to the beginning of a text node
+   Fields:
+   - action: "prepend_text"
+   - id: (required) Node ID or reference to the text node
+   - text: (required) Content to prepend (use "content" or "text")
+
+8. BUILD_GROUP - Create a group with multiple nodes inside using automatic layout
+   Fields:
+   - action: "build_group"
+   - label: (optional) Group label
+   - background: (optional) Path to background image
+   - background_style: (optional) "cover" | "ratio" | "repeat"
+   - x: (required) Group X position on canvas
+   - y: (required) Group Y position on canvas
+   - color: (optional) Group color
+   - ref: (optional) Reference ID for the group
+   - layout: (optional) Layout strategy - "vertical" | "horizontal" | "grid" | "manual" (default: "vertical")
+   - spacing: (optional) Spacing between nodes in pixels (default: 20)
+   - padding: (optional) Padding inside group in pixels (default: 20)
+   - grid_columns: (optional) Number of columns for grid layout (default: 2)
+   - nodes: (required) Array of node specifications to create inside the group
+
+   Each node in the nodes array has:
+   - type: (required) "text" | "file" | "link"
+   - ref: (optional) Reference ID for this node (for edges)
+   - text/content: (for text nodes) Markdown content
+   - file: (for file nodes) Path to file relative to vault root
+   - subpath: (for file nodes, optional) Heading/block reference
+   - portal: (for file nodes, optional) Set to true for .canvas files to open as portal
+   - url: (for link nodes) URL to link to
+   - width: (optional) Override default width
+   - height: (optional) Override default height
+   - color: (optional) Node color
+   - x, y: (for manual layout only) Position within group
+
+   Layout strategies:
+   - vertical: Stack nodes vertically (one column)
+   - horizontal: Arrange nodes horizontally (one row)
+   - grid: Arrange in a grid with grid_columns columns
+   - manual: Use x,y positions from each node spec
+
+9. ADD_EDGE - Add a connection between two nodes
    Fields:
    - action: "add_edge" (REQUIRED - singular, not "add_edges")
    - from_node: (required) Source node. Can use:
@@ -137,13 +203,13 @@ PLACEHOLDER IDs: You can create nodes and edges in a SINGLE REQUEST using placeh
    - color: (optional) Color as hex "#FF0000" or preset "1"-"6"
    - label: (optional) Edge label text
 
-5. UPDATE_EDGE - Modify an existing edge
+10. UPDATE_EDGE - Modify an existing edge
    Fields:
    - action: "update_edge"
    - id: (required) ID of the edge to update
    - Updates: Any combination of the add_edge fields above (except action)
 
-6. REMOVE_EDGE - Delete an edge from the canvas
+11. REMOVE_EDGE - Delete an edge from the canvas
    Fields:
    - action: "remove_edge"
    - id: (required) ID of the edge to remove
@@ -336,6 +402,115 @@ Example 5: Removing nodes and edges
 </operations>
 </manage_canvas>
 
+Example 6: Text editing operations
+<manage_canvas>
+<path>notes/brainstorm.canvas</path>
+<operations>
+[
+  {
+    "action": "insert_text",
+    "id": "text_node_123",
+    "start_line": 3,
+    "text": "## New Section\\n\\nInserted content here"
+  },
+  {
+    "action": "search_replace_text",
+    "id": "text_node_456",
+    "search": "TODO",
+    "replace": "DONE",
+    "ignore_case": true
+  },
+  {
+    "action": "append_text",
+    "id": "summary_node",
+    "text": "\\n\\n---\\n\\nLast updated: 2024-01-15"
+  },
+  {
+    "action": "prepend_text",
+    "id": "header_node",
+    "text": "# Important\\n\\n"
+  }
+]
+</operations>
+</manage_canvas>
+
+Example 7: Building a group with automatic layout
+<manage_canvas>
+<path>project/architecture.canvas</path>
+<operations>
+[
+  {
+    "action": "build_group",
+    "label": "Backend Services",
+    "x": 0,
+    "y": 0,
+    "color": "2",
+    "layout": "vertical",
+    "spacing": 30,
+    "padding": 40,
+    "ref": "backend_group",
+    "nodes": [
+      {
+        "type": "text",
+        "ref": "api_server",
+        "text": "## API Server\\n\\nHandles REST endpoints",
+        "color": "1"
+      },
+      {
+        "type": "text",
+        "ref": "database",
+        "text": "## Database\\n\\nPostgreSQL + Redis",
+        "color": "4"
+      },
+      {
+        "type": "file",
+        "ref": "auth_doc",
+        "file": "docs/authentication.md",
+        "height": 300
+      }
+    ]
+  },
+  {
+    "action": "build_group",
+    "label": "Frontend Components",
+    "x": 600,
+    "y": 0,
+    "color": "5",
+    "layout": "grid",
+    "grid_columns": 2,
+    "spacing": 20,
+    "padding": 30,
+    "nodes": [
+      {
+        "type": "text",
+        "text": "## Header\\n\\nNavigation bar",
+        "width": 200,
+        "height": 100
+      },
+      {
+        "type": "text",
+        "text": "## Sidebar\\n\\nMenu items",
+        "width": 200,
+        "height": 100
+      },
+      {
+        "type": "text",
+        "text": "## Content\\n\\nMain area",
+        "width": 200,
+        "height": 100
+      },
+      {
+        "type": "text",
+        "text": "## Footer\\n\\nLinks & info",
+        "width": 200,
+        "height": 100
+      }
+    ]
+  }
+]
+</operations>
+</manage_canvas>
+
 Notes:
 - Use read_file to see the current canvas structure before modifying (to get existing node IDs, positions, etc.)
 - Node IDs are automatically generated as unique strings if not provided
@@ -346,5 +521,12 @@ Notes:
 - Portal nodes (Advanced Canvas): Set "portal": true on .canvas file nodes to embed their content inline
 - Portal nodes should have larger dimensions (600x400+) to show embedded canvas content
 - Position coordinates (x, y) can be negative for infinite canvas space
-- The canvas will automatically handle layout - you just need to specify reasonable positions`
+- The canvas will automatically handle layout - you just need to specify reasonable positions
+- BUILD_GROUP operation: Use this to quickly create organized groups of nodes with automatic layout
+  * Vertical layout: Stack nodes in a single column
+  * Horizontal layout: Arrange nodes in a single row
+  * Grid layout: Organize in a grid with specified columns
+  * Manual layout: Provide explicit x,y positions for each node
+  * The group size is automatically calculated to fit all child nodes with padding
+  * Child nodes can have refs for connecting edges to/from them`
 }
